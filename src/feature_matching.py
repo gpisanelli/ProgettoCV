@@ -39,4 +39,3 @@ def find_object(matches, kp1, kp2, scene_img):
 
 def validate_match():
     pass
-
