@@ -3,8 +3,6 @@ import numpy as np
 
 
 def find_matches(des1, des2):
-
-    ########################## FLANN ##########################
     FLANN_INDEX_KDTREE = 1
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
     search_params = dict(checks=50)
@@ -33,5 +31,12 @@ def find_object(matches, kp1, kp2, scene_img):
     # Find bounds of the object in the scene
     pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
     dst = cv2.perspectiveTransform(pts, M)
+    bounds = [np.int32(dst)]
 
-    return np.int32(dst), M
+    return bounds, M
+
+
+
+def validate_match():
+    pass
+
