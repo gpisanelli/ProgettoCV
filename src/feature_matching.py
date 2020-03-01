@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 
 def find_matches(des1, des2):
@@ -17,3 +18,20 @@ def find_matches(des1, des2):
             good_matches.append(match1)
 
     return good_matches
+
+
+def find_object(matches, kp1, kp2, scene_img):
+    src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+    dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+
+    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+    matchesMask = mask.ravel().tolist()
+
+    h = scene_img.shape[0]
+    w = scene_img.shape[1]
+
+    # Find bounds of the object in the scene
+    pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+    dst = cv2.perspectiveTransform(pts, M)
+
+    return np.int32(dst), M
