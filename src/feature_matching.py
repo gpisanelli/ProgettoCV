@@ -10,14 +10,6 @@ def find_matches(des1, des2):
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     matches = flann.knnMatch(des1, des2, k=2)
 
-    ########################## SIFT ##########################
-    # bf = cv2.BFMatcher()
-    # Find best k matches
-    # start = time.time()
-    # matches = bf.knnMatch(des1, des2, k=2)
-    # t = time.time() - start
-    # print('\t\t\t\tTIME MATCHING: ', t)
-
     # Keep only good matches
     good_matches = []
     for match1, match2 in matches:
