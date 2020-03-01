@@ -2,11 +2,7 @@ import cv2
 import visualization
 
 
-def find_matches(source, scene):
-    sift = cv2.xfeatures2d.SIFT_create()
-
-    kp1, des1 = sift.detectAndCompute(source, None)
-    kp2, des2 = sift.detectAndCompute(scene, None)
+def find_matches(k1, kp2, des1, des2):
 
     ########################## FLANN ##########################
     FLANN_INDEX_KDTREE = 1
