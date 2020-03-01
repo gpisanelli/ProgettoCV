@@ -4,7 +4,7 @@ import src.image_processing as image_processing
 
 def display_img(img, width=0, title='Image'):
     if width != 0:
-        img = image_processing.resize_img(img, width)
+        img = image_processing.resize_img_width(img, width)
 
     cv2.imshow(title, img)
     while True:
@@ -17,5 +17,9 @@ def display_img(img, width=0, title='Image'):
 
 
 def draw_polygons(image, polygons):
+    img_copy = image.copy()
     for polygon in polygons:
-        cv2.polylines(image, [polygon], True, (0, 255, 0), 10)
+        polygon = polygon.reshape(polygon.shape[0], 2)
+        cv2.polylines(img_copy, [polygon], True, (0, 255, 0), 5)
+
+    return img_copy
