@@ -1,19 +1,16 @@
 import cv2
+import src.image_processing as image_processing
 
 
-def display_img(img, maxSize=0, title='Image'):
-    if maxSize != 0:
-        if img.shape[0] * 16 / 9 <= img.shape[1]:
-            width = 1000
-            height = int(width * img.shape[0] / img.shape[1])
-            dim = (width, height)
-            img = cv2.resize(img, dim, interpolation=cv2.INTER_LINEAR)
-        else:
-            height = 700
-            width = int(height * img.shape[1] / img.shape[0])
-            dim = (width, height)
-            img = cv2.resize(img, dim, interpolation=cv2.INTER_LINEAR)
+def display_img(img, width=0, title='Image'):
+    if width != 0:
+        img = image_processing.resize_img(img, width)
 
     cv2.imshow(title, img)
-    cv2.waitKey(0)
+    while True:
+        key = cv2.waitKey(10)
+        # Wait for ESC key
+        if key == 27:
+            break
+
     cv2.destroyAllWindows()
