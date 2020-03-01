@@ -14,3 +14,8 @@ def display_img(img, width=0, title='Image'):
             break
 
     cv2.destroyAllWindows()
+
+
+def draw_polygons(image, polygons):
+    for polygon in polygons:
+        cv2.polylines(image, [polygon], True, (0, 255, 0), 10)
