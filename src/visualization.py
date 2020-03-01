@@ -1,5 +1,5 @@
 import cv2
-import src.image_processing as image_processing
+import image_processing as image_processing
 
 
 def display_img(img, width=0, title='Image'):
@@ -9,6 +9,7 @@ def display_img(img, width=0, title='Image'):
     cv2.imshow(title, img)
     while True:
         key = cv2.waitKey(10)
+
         # Wait for ESC key
         if key == 27:
             break
