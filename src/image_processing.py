@@ -19,6 +19,10 @@ def sharpen_img(img):
     return cv2.addWeighted(img, 1.5, blurred, -0.5, 0)
 
 
+def add_images(img1, weight1, img2, weight2):
+    return cv2.addWeighted(img1, weight1, img2, weight2, 0)
+
+
 def denoise_img(img):
     return cv2.fastNlMeansDenoising(img, None, 10, 7, 21)
 

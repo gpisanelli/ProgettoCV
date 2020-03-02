@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
 import image_processing
+import visualization
+import matplotlib.pyplot as plt
 
-
-HISTOGRAM_THRESHOLD = 0.7
+HISTOGRAM_THRESHOLD = 1.5
 
 
 def is_convex_polygon(bounds):
@@ -48,6 +49,33 @@ def compare_hue(box, scene, homography, match_bounds):
     cv2.normalize(hist1, hist1, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
     cv2.normalize(hist2, hist2, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
 
-    hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
+    #plt.plot(hist1)
+    #plt.plot(hist2)
+    #plt.show()
 
-    return hue_comparison
+    #hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
+
+    _, _, _, peak1_hist1 = cv2.minMaxLoc(hist1)
+    _, _, _, peak1_hist2 = cv2.minMaxLoc(hist2)
+    hist1[peak1_hist1[1],0] = 0
+    hist2[peak1_hist2[1],0] = 0
+
+    _, _, _, peak2_hist1 = cv2.minMaxLoc(hist1)
+    _, _, _, peak2_hist2 = cv2.minMaxLoc(hist2)
+    hist1[peak2_hist1[1], 0] = 0
+    hist2[peak2_hist2[1], 0] = 0
+
+    _, _, _, peak3_hist2 = cv2.minMaxLoc(hist2)
+    hist2[peak3_hist2[1], 0] = 0
+
+    peaks1 = [peak1_hist1[1], peak2_hist1[1]]
+    peaks2 = [peak1_hist2[1], peak2_hist2[1], peak3_hist2[1]]
+
+    common_peaks = 0
+    for peak in peaks1:
+        if np.isin(peak, peaks2):
+            common_peaks = common_peaks + 1
+
+    print('Common peaks: ', common_peaks)
+
+    return common_peaks >= 2
