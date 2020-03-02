@@ -7,8 +7,8 @@ import visualization
 
 
 # Image loading
-box_path = load_images.get_path_for_box('18.jpg')
-scene_path = load_images.get_path_for_scene('e5.png')
+box_path = load_images.get_path_for_box('0.jpg')
+scene_path = load_images.get_path_for_scene('e1.png')
 
 box = load_images.load_img_color(box_path)
 scene = load_images.load_img_color(scene_path)
@@ -42,6 +42,9 @@ bounds, homography = feature_matching.find_object(matches, kp_box, kp_scene, pro
 
 # Object validation
 hue_comparison = object_validation.compare_hue(test_box, test_scene, homography, bounds)
+print('Hue comparison: ', hue_comparison)
+polygon_convex = object_validation.is_convex_polygon(bounds)
+print('Convex polygon: ', polygon_convex)
 
 # Result visualization
 visualization_scene = image_processing.resize_img_dim(visualization_scene, proc_scene.shape[1], proc_scene.shape[0])

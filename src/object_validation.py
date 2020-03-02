@@ -1,16 +1,17 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-
 import image_processing
-import visualization
+
 
 HISTOGRAM_THRESHOLD = 0.7
 
 
+def is_convex_polygon(bounds):
+    return cv2.isContourConvex(bounds)
+
+
 def compare_hue(box, scene, homography, match_bounds):
     transformed_box, test_scene = image_processing.transform_box_in_scene(box, scene, homography)
-    match_bounds = match_bounds[0].reshape((len(match_bounds[0]),2))
 
     left = np.min([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]])
     right = np.max([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]])
@@ -48,6 +49,5 @@ def compare_hue(box, scene, homography, match_bounds):
     cv2.normalize(hist2, hist2, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
 
     hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
-    print('Hue comparison: ', hue_comparison)
 
     return hue_comparison

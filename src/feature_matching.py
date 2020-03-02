@@ -33,7 +33,7 @@ def find_object(matches, kp1, kp2, scene_img):
     dst = cv2.perspectiveTransform(pts, M)
 
     bounds = np.int32(dst)
-    bounds = [bounds.reshape(bounds.shape[0], 2)]
+    bounds = bounds.reshape(bounds.shape[0], 2)
 
     return bounds, M
 
