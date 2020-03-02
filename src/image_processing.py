@@ -2,9 +2,12 @@ import cv2
 
 
 def equalize_histogram(img):
+    img_copy = img.copy()
     if len(img.shape) > 2:
-        return img
-    return cv2.equalizeHist(img)
+        return img_copy
+
+    cv2.equalizeHist(img_copy)
+    return img_copy
 
 
 def sharpen_img(img):
@@ -16,11 +19,14 @@ def denoise_img(img):
     return cv2.fastNlMeansDenoising(img, None, 10, 7, 21)
 
 
-
 def resize_img(img, scale_factor):
     width = int(img.shape[1] * scale_factor)
     height = int(img.shape[0] * scale_factor)
     return cv2.resize(img, (width,height), interpolation=cv2.INTER_CUBIC)
+
+
+def resize_img_dim(img, width, height):
+    return cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
 
 
 def resize_img_width(img, width):

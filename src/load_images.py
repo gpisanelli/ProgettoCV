@@ -1,4 +1,13 @@
 import cv2
+import os.path
+
+
+def get_path_for_box(box_name):
+    return os.path.join('..', 'images', 'object_detection_project', 'models', box_name)
+
+
+def get_path_for_scene(scene_name):
+    return os.path.join('..', 'images', 'object_detection_project', 'scenes', scene_name)
 
 
 def load_img_color(path):
