@@ -1,13 +1,17 @@
 import cv2
+import numpy as np
+
+
+def convert_grayscale(img):
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 
 def equalize_histogram(img):
-    img_copy = img.copy()
     if len(img.shape) > 2:
-        return img_copy
+        return img
 
-    cv2.equalizeHist(img_copy)
-    return img_copy
+    cv2.equalizeHist(img)
+    return img
 
 
 def sharpen_img(img):
@@ -37,3 +41,18 @@ def resize_img_width(img, width):
 def resize_img_height(img, height):
     width = int(img.shape[1] * height/img.shape[0])
     return cv2.resize(img, (width,height), interpolation=cv2.INTER_CUBIC)
+
+
+def transform_box_in_scene(box, scene, homography):
+    transformed_box = cv2.warpPerspective(box, homography, (scene.shape[1], scene.shape[0]))
+    test_scene = scene.copy()
+    mask = cv2.split(transformed_box)[0].astype(dtype=np.int32) + \
+           cv2.split(transformed_box)[1].astype(dtype=np.int32) + \
+           cv2.split(transformed_box)[2].astype(dtype=np.int32)
+
+    mask[mask > 0] = 1
+    test_scene[:, :, 0] = test_scene[:, :, 0] * mask
+    test_scene[:, :, 1] = test_scene[:, :, 1] * mask
+    test_scene[:, :, 2] = test_scene[:, :, 2] * mask
+
+    return transformed_box, test_scene
