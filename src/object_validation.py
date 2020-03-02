@@ -19,6 +19,11 @@ def compare_hue(box, scene, homography, match_bounds):
     top = np.min([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]])
     bottom = np.max([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]])
 
+    print('Left = ', left)
+    print('Right = ', right)
+    print('Top = ', top)
+    print('Bottom = ', bottom)
+
     if left < 0:
         left = 0
     if top < 0:
