@@ -14,8 +14,8 @@ box = load_images.load_img_color(box_path)
 scene = load_images.load_img_color(scene_path)
 visualization_scene = scene.copy()
 
-visualization.display_img(box, 200)
-visualization.display_img(scene, 800)
+visualization.display_img(box, 200, 'Box (press Esc to continue)')
+visualization.display_img(scene, 800, 'Scene (press Esc to continue)')
 
 # Preprocessing (box image)
 proc_box = image_processing.convert_grayscale(box)
@@ -58,6 +58,6 @@ if len(matches) > 10:
     # Result visualization
     visualization_scene = image_processing.resize_img_dim(visualization_scene, proc_scene.shape[1], proc_scene.shape[0])
     result = visualization.draw_polygons(visualization_scene, [bounds])
-    visualization.display_img(result, 1000, 'Result')
+    visualization.display_img(result, 1000, 'Result (press Esc to continue)')
 else:
     print('Not enough matches')
