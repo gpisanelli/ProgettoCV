@@ -7,7 +7,7 @@ import visualization
 
 # Image loading
 scene_names = ['e1.png', 'e2.png', 'e3.png', 'e4.png', 'e5.png']
-box_names = ['0.jpg', '1.jpg', '11.jpg', '19.jpg', '24.jpg', '25.jpg', '26.jpg']
+box_names = ['1.jpg']
 
 #scene_name = 'e1.png'
 #box_name = '0.jpg'
@@ -46,7 +46,7 @@ for scene_name in scene_names:
         matches = feature_matching.find_matches(des_box, des_scene)
         print('Number of matches: ', len(matches))
 
-        if len(matches) > 100:
+        if len(matches) > 10:
             # Object detection
             bounds, homography = feature_matching.find_object(matches, kp_box, kp_scene, proc_box)
 

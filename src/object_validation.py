@@ -4,6 +4,7 @@ import numpy as np
 import feature_matching
 import image_processing
 import visualization
+import matplotlib.pyplot as plt
 
 HISTOGRAM_THRESHOLD = 1.5
 
@@ -78,6 +79,24 @@ def compare_hue(box, scene, homography, match_bounds):
             common_peaks = common_peaks + 1
 
     print('Common peaks: ', common_peaks)
-    print('Hue comparison: ', hue_comparison)
 
-    return common_peaks >= 2 and hue_comparison >= 0.7
+    scene_h = cv2.split(cv2.cvtColor(scene, cv2.COLOR_BGR2HSV))[0]
+    img1_h = cv2.split(cv2.cvtColor(img1, cv2.COLOR_BGR2HSV))[0]
+
+    result = cv2.matchTemplate(scene_h, img1_h, cv2.TM_SQDIFF_NORMED)
+    result = cv2.normalize(result, result, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+
+    w = img1.shape[1]
+    h = img1.shape[0]
+
+    # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
+    #if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
+    top_left = min_loc
+    #else:
+    #top_left = max_loc
+    bottom_right = (top_left[0] + w, top_left[1] + h)
+    cv2.rectangle(scene, top_left, bottom_right, 255, 10)
+    visualization.display_img(scene)
+
+    return common_peaks >= 2
