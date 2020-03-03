@@ -3,16 +3,16 @@ import numpy as np
 import image_processing
 import platform
 import subprocess
-from win32api import GetMonitorInfo, MonitorFromPoint
 
 if platform.system() == 'Windows':
+    from win32api import GetMonitorInfo, MonitorFromPoint
     screen_width = GetMonitorInfo(MonitorFromPoint((0, 0))).get("Work")[2]
     screen_height = GetMonitorInfo(MonitorFromPoint((0, 0))).get("Work")[3] - 32   # subtracting title bar height
 else:
     output = subprocess.Popen('xrandr | grep "\*" | cut -d" " -f4', shell=True, stdout=subprocess.PIPE).communicate()[0]
     resolution = output.split()[0].split(b'x')
-    screen_width = resolution[0]
-    screen_height = resolution[1]
+    screen_width = int(resolution[0])
+    screen_height = int(resolution[1])
 
 
 def display_img(img, width=0, title='Image'):
