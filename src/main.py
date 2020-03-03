@@ -9,7 +9,7 @@ import visualization
 scene_names = ['e1.png', 'e2.png', 'e3.png', 'e4.png', 'e5.png']
 box_names = ['0.jpg', '1.jpg', '11.jpg', '19.jpg', '24.jpg', '25.jpg', '26.jpg']
 
-#scene_name = 'e2.png'
+#scene_name = 'e4.png'
 #box_name = '0.jpg'
 for scene_name in scene_names:
     for box_name in box_names:
