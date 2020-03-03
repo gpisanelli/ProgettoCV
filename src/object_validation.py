@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+
+import feature_matching
 import image_processing
 import visualization
 

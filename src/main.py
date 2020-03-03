@@ -19,6 +19,7 @@ for scene_name in scene_names:
 
         box = load_images.load_img_color(box_path)
         scene = load_images.load_img_color(scene_path)
+
         visualization_scene = scene.copy()
 
         visualization.display_img(box, 200, 'Box (press Esc to continue)')

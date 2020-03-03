@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import visualization
 
 
 def find_matches(des1, des2):
@@ -37,6 +38,34 @@ def find_object(matches, kp1, kp2, scene_img):
 
     return bounds, M
 
+
+def find_object_similarity_functions(img, template):
+    img2 = img.copy()
+    w = template.shape[1]
+    h = template.shape[0]
+
+    # All the 6 methods for comparison in a list
+    methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR',
+               'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']
+
+    for meth in methods:
+        img = img2.copy()
+        method = eval(meth)
+
+        # Apply template Matching
+        res = cv2.matchTemplate(cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2HSV))[0], cv2.split(cv2.cvtColor(template, cv2.COLOR_BGR2HSV))[0], method)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
+        # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
+        if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
+            top_left = min_loc
+        else:
+            top_left = max_loc
+        bottom_right = (top_left[0] + w, top_left[1] + h)
+
+        cv2.rectangle(img, top_left, bottom_right, 255, 2)
+
+        visualization.display_img(img, title=meth)
 
 
 def validate_match():
