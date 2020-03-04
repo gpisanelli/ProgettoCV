@@ -15,7 +15,19 @@ def is_convex_polygon(bounds):
     return cv2.isContourConvex(bounds)
 
 
+# Draws a black rectangle around each matching point found in the two images, obtaining a box and a scene in which only
+# the regions of the image that contain no important features are left. Because of how the feature detection algorithm
+# works, features belong to areas with edges and intensity variations. In the case of grocery products, regions with
+# many features are represented by drawings, logos, mascots and product names, which can be equal in different variants
+# of the same product, thus producing wrong matches. Removing these regions from the color comparison step gives more
+# reliable results, reducing the number of false positives.
+# Moreover, an approximation of the percentage of the area of the image covered by features is computed. If this
+# percentage is lower than a certain threshold, it means that only a small area of the image was matched (this typically
+# happens when logos are matched between two different products of the same brand), and the result can be discarded to
+# be sure to avoid a false positive.
+# The evaluation process is very efficient, and does not have a significant impact on execution time.
 def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homography):
+    start = time.time()
     box_val = box.copy()
     scene_val = scene.copy()
 
@@ -32,13 +44,11 @@ def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homog
     # Draw mask of matches for scene image
     rect_size = min(width/20, height/20)
     masked_scene = scene_val.copy()
-    scene_samples = []
     for point in used_scene_pts:
         masked_scene[int(point[1] - rect_size):int(point[1] + rect_size), int(point[0] - rect_size):int(point[0] + rect_size)] = 0
 
     # Draw mask of matches for box image
     rect_size = rect_size * ratio
-    box_samples = []
     masked_box = box_val.copy()
     box_masked_area = np.zeros((masked_box.shape[0], masked_box.shape[1]), dtype=np.uint8)
     for point in used_box_pts:
@@ -55,7 +65,7 @@ def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homog
 
     if area_ratio < 0.20:
         return False
-
+    print('\n\nTIME: ', (time.time() - start), '\n\n')
     return compare_hue(masked_box, masked_scene, homography, match_bounds)
 
 
@@ -171,4 +181,4 @@ def compare_hue(box, scene, homography, match_bounds):
         print('Color validation failed')
         return False
     """
-    return common_peaks >= 2 and hue_comparison > 0.7
+    return common_peaks >= 2 and hue_comparison > 0.75

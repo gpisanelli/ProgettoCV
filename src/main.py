@@ -9,7 +9,7 @@ import object_validation
 import visualization
 
 # Image loading
-scene_names = ['e5.png']
+scene_names = ['e4.png']
 box_names = ['0.jpg', '1.jpg', '11.jpg', '19.jpg', '24.jpg', '25.jpg', '26.jpg']
 
 
