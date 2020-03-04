@@ -7,7 +7,7 @@ import visualization
 
 # Image loading
 scene_names = ['e1.png', 'e2.png', 'e3.png', 'e4.png', 'e5.png']
-box_names = ['1.jpg']
+box_names = ['0.jpg', '1.jpg', '11.jpg', '19.jpg', '24.jpg', '25.jpg', '26.jpg']
 
 #scene_name = 'e1.png'
 #box_name = '0.jpg'
@@ -36,7 +36,8 @@ for scene_name in scene_names:
         proc_scene = image_processing.equalize_histogram(proc_scene)
         proc_scene = image_processing.resize_img(proc_scene, 2)
         proc_scene = image_processing.sharpen_img(proc_scene)
-        test_scene = image_processing.resize_img(scene, 2)
+        test_scene = scene.copy()
+        test_scene = image_processing.resize_img(test_scene, 2)
 
         # Feature detection
         kp_box, des_box = feature_detection.detect_features_SIFT(proc_box)

@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import numpy as np
 
@@ -14,6 +16,7 @@ def is_convex_polygon(bounds):
 
 
 def compare_hue(box, scene, homography, match_bounds):
+    start = time.time()
     transformed_box, test_scene = image_processing.transform_box_in_scene(box, scene, homography)
 
     left = max(0, np.min([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]]))
@@ -52,6 +55,11 @@ def compare_hue(box, scene, homography, match_bounds):
     #plt.show()
 
     hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
+    cv2.polylines(scene, [match_bounds], True, (0,0,255), 5)
+    visualization.display_img(scene, title='Checking this box')
+    print('Hue comparison: ', hue_comparison)
+    if hue_comparison > 0.9:
+        return True
 
     _, _, _, peak1_hist1 = cv2.minMaxLoc(hist1)
     hist1[peak1_hist1[1], 0] = 0
@@ -80,6 +88,8 @@ def compare_hue(box, scene, homography, match_bounds):
 
     print('Common peaks: ', common_peaks)
 
+    #start = time.time()
+
     scene_h = cv2.split(cv2.cvtColor(scene, cv2.COLOR_BGR2HSV))[0]
     img1_h = cv2.split(cv2.cvtColor(img1, cv2.COLOR_BGR2HSV))[0]
 
@@ -98,5 +108,22 @@ def compare_hue(box, scene, homography, match_bounds):
     bottom_right = (top_left[0] + w, top_left[1] + h)
     cv2.rectangle(scene, top_left, bottom_right, 255, 10)
     visualization.display_img(scene)
+    t = time.time() - start
+    print('\n\nTime: ', t, '\n\n')
+
+    test_intersection_mask = np.zeros((scene.shape[0],scene.shape[1]))
+    test_intersection_mask[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = 1
+    test_img = np.zeros((scene.shape[0],scene.shape[1]))
+    test_img[top:bottom, left:right] = 1
+    test_img[test_intersection_mask == 0] = 0
+    intersection_area = cv2.countNonZero(test_img)
+
+    rectangle_area = w * h
+    intersection_percentage = intersection_area / rectangle_area
+    print('Intersection percentage: ', intersection_percentage)
+
+    if intersection_percentage < 0.5:
+        print('Color validation failed')
+        return False
 
     return common_peaks >= 2
