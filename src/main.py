@@ -84,6 +84,6 @@ for scene_name in scene_names:
                                                                           proc_scene.shape[0])
                     result = visualization.draw_polygons(visualization_scene, [bounds])
                     result = visualization.draw_names(result, bounds, box_name)
-                    visualization.display_img(result, 1000, 'Result (press Esc to continue)')
+                    visualization.display_img(result, 500, 'Result (press Esc to continue)')
         else:
             print('Not enough matches')

@@ -65,8 +65,10 @@ def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homog
 
     if area_ratio < 0.20:
         return False
+
+    comp_hue = compare_hue(masked_box, masked_scene, homography, match_bounds)
     print('\n\nTIME: ', (time.time() - start), '\n\n')
-    return compare_hue(masked_box, masked_scene, homography, match_bounds)
+    return comp_hue
 
 
 def compare_hue(box, scene, homography, match_bounds):
@@ -104,9 +106,9 @@ def compare_hue(box, scene, homography, match_bounds):
     cv2.normalize(hist1, hist1, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
     cv2.normalize(hist2, hist2, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
 
-    plt.plot(hist1, color='#FF4455')
-    plt.plot(hist2)
-    plt.show()
+    #plt.plot(hist1, color='#FF4455')
+    #plt.plot(hist2)
+    #plt.show()
 
     # Compare the two hue histograms using correlation
     hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
