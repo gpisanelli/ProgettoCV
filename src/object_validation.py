@@ -55,8 +55,6 @@ def compare_hue(box, scene, homography, match_bounds):
     #plt.show()
 
     hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
-    cv2.polylines(scene, [match_bounds], True, (0,0,255), 5)
-    visualization.display_img(scene, title='Checking this box')
     print('Hue comparison: ', hue_comparison)
     if hue_comparison > 0.9:
         return True
@@ -90,7 +88,7 @@ def compare_hue(box, scene, homography, match_bounds):
 
     #start = time.time()
 
-    scene_h = cv2.split(cv2.cvtColor(scene, cv2.COLOR_BGR2HSV))[0]
+    scene_h = cv2.split(cv2.cvtColor(test_scene, cv2.COLOR_BGR2HSV))[0]
     img1_h = cv2.split(cv2.cvtColor(img1, cv2.COLOR_BGR2HSV))[0]
 
     result = cv2.matchTemplate(scene_h, img1_h, cv2.TM_SQDIFF_NORMED)
