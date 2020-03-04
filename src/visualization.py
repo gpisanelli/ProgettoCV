@@ -16,7 +16,7 @@ else:
     output = subprocess.Popen('xrandr | grep "\*" | cut -d" " -f4', shell=True, stdout=subprocess.PIPE).communicate()[0]
     resolution = output.split()[0].split(b'x')
     screen_width = int(resolution[0])
-    screen_height = int(resolution[1])
+    screen_height = int(resolution[1]) - 200
 
 
 def display_img(img, width=0, title=None, wait=True):
@@ -63,9 +63,13 @@ def draw_polygons(image, polygons):
 
 
 def draw_names(img, bounds, box_name):
+    rec_mask = np.zeros(img.shape, np.uint8)
+
     name = load_images.get_box_name(box_name)
     fontFace = cv2.FONT_HERSHEY_SIMPLEX
-    fontScale = 2
-    thickness = 4
-    img = cv2.rectangle(img, (bounds[0][0] + 5, int((bounds[0][1] + bounds[1][1]) / 2 + 40)), (bounds[0][0] + len(name)*35, int((bounds[0][1] + bounds[1][1]) / 2 - 80)), (0,0,0), thickness=-1)
-    return cv2.putText(img, name, (bounds[0][0] + 5, int((bounds[0][1] + bounds[1][1]) / 2)), fontFace, fontScale, (0,200,0), thickness)
+    fontScale = 0.5 * img.shape[0] * img.shape[1] / (800*800)
+    thickness = int(1.5 * img.shape[0] * img.shape[1] / (800*800))
+    rec_mask = cv2.rectangle(rec_mask, (bounds[0][0] - 5, int((bounds[0][1] + bounds[1][1]) / 2 - 35*fontScale)), (int(bounds[0][0] + len(name)*20*fontScale), int((bounds[0][1] + bounds[1][1]) / 2 + 15*fontScale)), (255,255,255), thickness=-1)
+    img = cv2.addWeighted(img, 1, rec_mask, 0.5, 0)
+    img = cv2.putText(img, name, (bounds[0][0] + 5, int((bounds[0][1] + bounds[1][1]) / 2)), fontFace, fontScale, (0,0,0), thickness)
+    return img

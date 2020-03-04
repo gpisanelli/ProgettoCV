@@ -1,11 +1,14 @@
+import time
+
 import cv2
 import numpy as np
 import visualization
 
 
 def find_matches(des1, des2):
+    start = time.time()
     FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=8)
     search_params = dict(checks=50)
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     matches = flann.knnMatch(des1, des2, k=2)
@@ -16,6 +19,7 @@ def find_matches(des1, des2):
         if match1.distance < 0.7 * match2.distance:
             good_matches.append(match1)
 
+    #print('\n--- TIME MATCHING: ', (time.time() - start), ' ---\n')
     return good_matches
 
 

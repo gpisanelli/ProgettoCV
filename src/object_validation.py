@@ -61,13 +61,13 @@ def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homog
     #visualization.display_img(masked_scene, 800)
     t = box_masked_area[box_masked_area > 0]
     area_ratio = t.shape[0] / (masked_box.shape[0] * masked_box.shape[1])
-    print('\nArea ratio: ', area_ratio, '\n')
+    #print('Area ratio: ', area_ratio)
 
     if area_ratio < 0.20:
         return False
 
     comp_hue = compare_hue(masked_box, masked_scene, homography, match_bounds)
-    print('\n\nTIME: ', (time.time() - start), '\n\n')
+    #print('\n\nTIME: ', (time.time() - start), '\n\n')
     return comp_hue
 
 
@@ -113,7 +113,7 @@ def compare_hue(box, scene, homography, match_bounds):
     # Compare the two hue histograms using correlation
     hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
 
-    print('Hue comparison: ', hue_comparison)
+    #print('Hue comparison: ', hue_comparison)
     if hue_comparison > 0.9:
         return True
 
@@ -143,7 +143,7 @@ def compare_hue(box, scene, homography, match_bounds):
         if np.isin(peak, peaks1):
             common_peaks = common_peaks + 1
 
-    print('Common peaks: ', common_peaks)
+    #print('Common peaks: ', common_peaks)
 
     #start = time.time()
     """
@@ -166,7 +166,7 @@ def compare_hue(box, scene, homography, match_bounds):
     cv2.rectangle(scene, top_left, bottom_right, 255, 10)
     visualization.display_img(scene)
     t = time.time() - start
-    print('\n\nTime: ', t, '\n\n')
+    #print('\n\nTime: ', t, '\n\n')
 
     test_intersection_mask = np.zeros((scene.shape[0],scene.shape[1]))
     test_intersection_mask[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = 1
@@ -177,10 +177,10 @@ def compare_hue(box, scene, homography, match_bounds):
 
     rectangle_area = w * h
     intersection_percentage = intersection_area / rectangle_area
-    print('Intersection percentage: ', intersection_percentage)
+    #print('Intersection percentage: ', intersection_percentage)
 
     if intersection_percentage < 0.5:
-        print('Color validation failed')
+        #print('Color validation failed')
         return False
     """
     return common_peaks >= 2 and hue_comparison > 0.75
