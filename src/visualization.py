@@ -1,8 +1,12 @@
+import time
+
 import cv2
 import numpy as np
 import image_processing
 import platform
 import subprocess
+
+import load_images
 
 if platform.system() == 'Windows':
     from win32api import GetMonitorInfo, MonitorFromPoint
@@ -15,7 +19,9 @@ else:
     screen_height = int(resolution[1])
 
 
-def display_img(img, width=0, title='Image'):
+def display_img(img, width=0, title=None, wait=True):
+    if title is None:
+        title = str(time.time_ns())
     if width != 0:
         img = image_processing.resize_img_width(img, width)
 
@@ -28,8 +34,8 @@ def display_img(img, width=0, title='Image'):
         # Wait for ESC key
         if key == 27:
             break
-
-    cv2.destroyAllWindows()
+    if wait:
+        cv2.destroyAllWindows()
 
 
 def correct_if_oversized(img):
@@ -53,3 +59,13 @@ def draw_polygons(image, polygons):
         cv2.polylines(img_copy, [polygon], True, (0, 255, 0), 5)
 
     return img_copy
+
+
+
+def draw_names(img, bounds, box_name):
+    name = load_images.get_box_name(box_name)
+    fontFace = cv2.FONT_HERSHEY_SIMPLEX
+    fontScale = 2
+    thickness = 4
+    img = cv2.rectangle(img, (bounds[0][0] + 5, int((bounds[0][1] + bounds[1][1]) / 2 + 40)), (bounds[0][0] + len(name)*35, int((bounds[0][1] + bounds[1][1]) / 2 - 80)), (0,0,0), thickness=-1)
+    return cv2.putText(img, name, (bounds[0][0] + 5, int((bounds[0][1] + bounds[1][1]) / 2)), fontFace, fontScale, (0,200,0), thickness)

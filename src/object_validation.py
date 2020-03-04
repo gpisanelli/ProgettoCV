@@ -15,6 +15,50 @@ def is_convex_polygon(bounds):
     return cv2.isContourConvex(bounds)
 
 
+def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homography):
+    box_val = box.copy()
+    scene_val = scene.copy()
+
+    left = np.min([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]])
+    right = np.max([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]])
+    top = np.min([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]])
+    bottom = np.max([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]])
+
+    width = right - left
+    height = bottom - top
+
+    ratio = box_val.shape[1] / width
+
+    # Draw mask of matches for scene image
+    rect_size = min(width/20, height/20)
+    masked_scene = scene_val.copy()
+    scene_samples = []
+    for point in used_scene_pts:
+        masked_scene[int(point[1] - rect_size):int(point[1] + rect_size), int(point[0] - rect_size):int(point[0] + rect_size)] = 0
+
+    # Draw mask of matches for box image
+    rect_size = rect_size * ratio
+    box_samples = []
+    masked_box = box_val.copy()
+    box_masked_area = np.zeros((masked_box.shape[0], masked_box.shape[1]), dtype=np.uint8)
+    for point in used_box_pts:
+        masked_box[int(point[1] - rect_size):int(point[1] + rect_size),
+        int(point[0] - rect_size):int(point[0] + rect_size)] = 0
+        box_masked_area[int(point[1] - rect_size*2):int(point[1] + rect_size*2), int(point[0] - rect_size*2):int(point[0] + rect_size*2)] = 1
+
+    #visualization.display_img(box_masked_area*255, title='Area', wait=False)
+    #visualization.display_img(masked_box, 400, wait=False)
+    #visualization.display_img(masked_scene, 800)
+    t = box_masked_area[box_masked_area > 0]
+    area_ratio = t.shape[0] / (masked_box.shape[0] * masked_box.shape[1])
+    print('\nArea ratio: ', area_ratio, '\n')
+
+    if area_ratio < 0.20:
+        return False
+
+    return compare_hue(masked_box, masked_scene, homography, match_bounds)
+
+
 def compare_hue(box, scene, homography, match_bounds):
     start = time.time()
     transformed_box, test_scene = image_processing.transform_box_in_scene(box, scene, homography)
@@ -24,16 +68,8 @@ def compare_hue(box, scene, homography, match_bounds):
     top = max(0, np.min([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]]))
     bottom = min(transformed_box.shape[0], np.max([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]]))
 
-    print('Left = ', left)
-    print('Right = ', right)
-    print('Top = ', top)
-    print('Bottom = ', bottom)
-
     img1 = transformed_box[top:bottom, left:right]
     img2 = test_scene[top:bottom, left:right]
-
-    #img1 = image_processing.resize_img(img1, 2)
-    #img2 = image_processing.resize_img(img2, 2)
 
     h1, s1, v1 = cv2.split(cv2.cvtColor(img1, cv2.COLOR_BGR2HSV))
     h2, s2, v2 = cv2.split(cv2.cvtColor(img2, cv2.COLOR_BGR2HSV))
@@ -43,24 +79,36 @@ def compare_hue(box, scene, homography, match_bounds):
     mask1[v1 > 0] = 1
     mask2[v2 > 0] = 1
 
-    # Hue comparison
+    # Hue histogram calculation, using 8 bins to group together similar colors, even though they are not identical.
     hist1 = cv2.calcHist([h1], channels=[0], mask=mask1, histSize=[8], ranges=[0, 180])
     hist2 = cv2.calcHist([h2], channels=[0], mask=mask1, histSize=[8], ranges=[0, 180])
+
+    # Shift red values from the end of the range to the start. This is done because hue is represented as a circle
+    # with values [0-180] in opencv, and red values are present both in the range [0-30] and in the range [150-180]
+    # approximately.
+    hist1[0] = hist1[0] + hist1[7]
+    hist2[0] = hist2[0] + hist2[7]
+    hist1[7] = 0
+    hist2[7] = 0
 
     cv2.normalize(hist1, hist1, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
     cv2.normalize(hist2, hist2, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
 
-    #plt.plot(hist1)
-    #plt.plot(hist2)
-    #plt.show()
+    plt.plot(hist1, color='#FF4455')
+    plt.plot(hist2)
+    plt.show()
 
+    # Compare the two hue histograms using correlation
     hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
-    cv2.polylines(scene, [match_bounds], True, (0,0,255), 5)
-    visualization.display_img(scene, title='Checking this box')
+
     print('Hue comparison: ', hue_comparison)
     if hue_comparison > 0.9:
         return True
 
+
+    # Search for peaks in the hue histograms. This is done to find the dominant colors in the two images. The match is
+    # considered correct if a sufficient number of common peaks are found in the two histograms, indicating similar
+    # dominant colors for the two images.
     _, _, _, peak1_hist1 = cv2.minMaxLoc(hist1)
     hist1[peak1_hist1[1], 0] = 0
     _, _, _, peak2_hist1 = cv2.minMaxLoc(hist1)
@@ -78,9 +126,6 @@ def compare_hue(box, scene, homography, match_bounds):
     peaks1 = list({peak1_hist1[1], peak2_hist1[1], peak3_hist1[1]})
     peaks2 = list({peak1_hist2[1], peak2_hist2[1], peak3_hist2[1]})
 
-    print('Peaks box: ', peaks1)
-    print('Peaks scene: ', peaks2)
-
     common_peaks = 0
     for peak in peaks2:
         if np.isin(peak, peaks1):
@@ -89,7 +134,7 @@ def compare_hue(box, scene, homography, match_bounds):
     print('Common peaks: ', common_peaks)
 
     #start = time.time()
-
+    """
     scene_h = cv2.split(cv2.cvtColor(scene, cv2.COLOR_BGR2HSV))[0]
     img1_h = cv2.split(cv2.cvtColor(img1, cv2.COLOR_BGR2HSV))[0]
 
@@ -125,5 +170,5 @@ def compare_hue(box, scene, homography, match_bounds):
     if intersection_percentage < 0.5:
         print('Color validation failed')
         return False
-
-    return common_peaks >= 2
+    """
+    return common_peaks >= 2 and hue_comparison > 0.7
