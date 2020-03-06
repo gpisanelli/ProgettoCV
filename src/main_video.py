@@ -11,7 +11,7 @@ import visualization
 
 # Image loading
 template_files = [
-    '../images/pixel.jpg'
+    '../images/hp.jpg'
 ]
 
 dict_features_templates = {}

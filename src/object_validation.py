@@ -184,6 +184,5 @@ def compare_hue(box, scene, homography, match_bounds):
         #print('Color validation failed')
         return False
     """
-    if common_peaks >= 3 and hue_comparison > 0.6:
-        return True
+
     return common_peaks >= 2 and hue_comparison > 0.75

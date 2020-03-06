@@ -48,7 +48,6 @@ def main():
     for box_name in box_names:
         box_path = load_images.get_path_for_box(box_name)
         box = load_images.load_img_color(box_path)
-        box = image_processing.resize_img(box, 0.5)
         proc_box = preprocess_box(box)
         # Feature detection
         kp_box, des_box = feature_detection.detect_features_SIFT(proc_box)
@@ -74,7 +73,6 @@ def main():
 
             box_path = load_images.get_path_for_box(box_name)
             box = load_images.load_img_color(box_path)
-            box = image_processing.resize_img(box, 0.5)
             proc_box = preprocess_box(box)
             test_box = box.copy()
             test_box = image_processing.resize_img_dim(test_box, proc_box.shape[1], proc_box.shape[0])
