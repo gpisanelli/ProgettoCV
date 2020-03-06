@@ -67,6 +67,7 @@ def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homog
         return False
 
     comp_hue = compare_hue(masked_box, masked_scene, homography, match_bounds)
+    print(comp_hue)
     #print('\n\nTIME: ', (time.time() - start), '\n\n')
     return comp_hue
 
@@ -92,16 +93,16 @@ def compare_hue(box, scene, homography, match_bounds):
     mask2[v2 > 0] = 1
 
     # Hue histogram calculation, using 8 bins to group together similar colors, even though they are not identical.
-    hist1 = cv2.calcHist([h1], channels=[0], mask=mask1, histSize=[8], ranges=[0, 180])
-    hist2 = cv2.calcHist([h2], channels=[0], mask=mask1, histSize=[8], ranges=[0, 180])
+    hist1 = cv2.calcHist([h1], channels=[0], mask=mask1, histSize=[6], ranges=[0, 180])
+    hist2 = cv2.calcHist([h2], channels=[0], mask=mask1, histSize=[6], ranges=[0, 180])
 
     # Shift red values from the end of the range to the start. This is done because hue is represented as a circle
     # with values [0-180] in opencv, and red values are present both in the range [0-30] and in the range [150-180]
     # approximately.
-    hist1[0] = hist1[0] + hist1[7]
-    hist2[0] = hist2[0] + hist2[7]
-    hist1[7] = 0
-    hist2[7] = 0
+    hist1[0] = hist1[0] + hist1[5]
+    hist2[0] = hist2[0] + hist2[5]
+    hist1[5] = 0
+    hist2[5] = 0
 
     cv2.normalize(hist1, hist1, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
     cv2.normalize(hist2, hist2, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
@@ -113,7 +114,7 @@ def compare_hue(box, scene, homography, match_bounds):
     # Compare the two hue histograms using correlation
     hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
 
-    #print('Hue comparison: ', hue_comparison)
+    print('Hue comparison: ', hue_comparison)
     if hue_comparison > 0.9:
         return True
 
@@ -143,7 +144,7 @@ def compare_hue(box, scene, homography, match_bounds):
         if np.isin(peak, peaks1):
             common_peaks = common_peaks + 1
 
-    #print('Common peaks: ', common_peaks)
+    print('Common peaks: ', common_peaks)
 
     #start = time.time()
     """
@@ -183,4 +184,6 @@ def compare_hue(box, scene, homography, match_bounds):
         #print('Color validation failed')
         return False
     """
+    if common_peaks >= 3 and hue_comparison > 0.6:
+        return True
     return common_peaks >= 2 and hue_comparison > 0.75
