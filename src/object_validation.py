@@ -185,4 +185,4 @@ def compare_hue(box, scene, homography, match_bounds):
         return False
     """
 
-    return common_peaks >= 2 and hue_comparison > 0.75
+    return common_peaks >= 2 and hue_comparison > 0.7

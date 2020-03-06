@@ -6,7 +6,7 @@ import cv2
 
 
 def compute_sift(sub_img):
-    sift = xfeatures2d.SIFT_create(2000)
+    sift = xfeatures2d.SIFT_create(5000)
     kp_t, des_t = sift.detectAndCompute(sub_img, None)
     return kp_t, des_t
 

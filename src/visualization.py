@@ -26,8 +26,9 @@ def display_img(img, width=0, title=None, wait=True):
         img = image_processing.resize_img_width(img, width)
 
     img = correct_if_oversized(img)
-
-    cv2.imshow(title, img)
+    title = str(time.time_ns())
+    cv2.imwrite('/home/mattia/Desktop/'+title+'.jpg', img)
+    """
     while True:
         key = cv2.waitKey(10)
 
@@ -36,6 +37,7 @@ def display_img(img, width=0, title=None, wait=True):
             break
     if wait:
         cv2.destroyAllWindows()
+    """
 
 
 def correct_if_oversized(img):

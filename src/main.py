@@ -13,7 +13,8 @@ scene_names = [
     #'m1.png','m2.png','m3.png','m4.png','m5.png'
     #'h1.jpg','h2.jpg','h3.jpg','h4.jpg','h5.jpg'
 ]
-box_names = ['0.jpg', '1.jpg', '11.jpg', '19.jpg', '24.jpg', '25.jpg', '26.jpg']
+box_names = ['0.jpg', '1.jpg', '11.jpg', '19.jpg', '24.jpg', '25.jpg', '26.jpg'
+]
 
 
 def preprocess_box(b):
