@@ -26,7 +26,6 @@ def display_img(img, width=0, title=None, wait=True):
         img = image_processing.resize_img_width(img, width)
 
     img = correct_if_oversized(img)
-    title = str(time.time_ns())
 
     cv2.imshow(title, img)
     while True:

@@ -22,7 +22,7 @@ def preprocess_box(b):
     # Preprocessing (box image)
     pr_box = image_processing.convert_grayscale(pr_box)
     pr_box = image_processing.equalize_histogram(pr_box)
-    #pr_box = image_processing.sharpen_img(pr_box)
+    pr_box = image_processing.sharpen_img(pr_box)
 
     return pr_box
 
