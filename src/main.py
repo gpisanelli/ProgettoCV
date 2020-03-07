@@ -97,13 +97,14 @@ def main():
                 if polygon_convex:
                     color_validation = object_validation.validate_color(test_box, test_scene, used_box_points, used_scene_points, bounds, homography)
                     if not color_validation:
-                        print('Color validation failed')
+                        pass
+                        #print('Color validation failed')
                     else:
-                        print('Color validation successful')
+                        #print('Color validation successful')
                         visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
                         visualization_scene = visualization.draw_names(visualization_scene, bounds, box_name)
             else:
-                print('Not enough matches')
+                #print('Not enough matches')
                 pass
 
         visualization.display_img(visualization_scene, 1000, 'Result (press Esc to continue)')

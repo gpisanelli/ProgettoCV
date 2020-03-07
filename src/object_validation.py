@@ -114,7 +114,7 @@ def compare_hue(box, scene, homography, match_bounds):
     # Compare the two hue histograms using correlation
     hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
 
-    print('Hue comparison: ', hue_comparison)
+    #print('Hue comparison: ', hue_comparison)
     if hue_comparison > 0.9:
         return True
 
@@ -144,7 +144,7 @@ def compare_hue(box, scene, homography, match_bounds):
         if np.isin(peak, peaks1):
             common_peaks = common_peaks + 1
 
-    print('Common peaks: ', common_peaks)
+    #print('Common peaks: ', common_peaks)
 
     #start = time.time()
     """

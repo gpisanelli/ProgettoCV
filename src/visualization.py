@@ -1,11 +1,11 @@
 import time
 
-import cv2
+import cv2 as cv2
 import numpy as np
 import image_processing
 import platform
 import subprocess
-
+import matplotlib.pyplot as plt
 import load_images
 
 if platform.system() == 'Windows':
@@ -27,8 +27,8 @@ def display_img(img, width=0, title=None, wait=True):
 
     img = correct_if_oversized(img)
     title = str(time.time_ns())
-    cv2.imwrite('/home/mattia/Desktop/'+title+'.jpg', img)
-    """
+
+    cv2.imshow(title, img)
     while True:
         key = cv2.waitKey(10)
 
@@ -37,7 +37,11 @@ def display_img(img, width=0, title=None, wait=True):
             break
     if wait:
         cv2.destroyAllWindows()
-    """
+
+
+    #plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    #plt.show()
+
 
 
 def correct_if_oversized(img):
