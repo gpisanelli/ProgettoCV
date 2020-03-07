@@ -5,6 +5,27 @@ import load_images
 import visualization
 
 
+def compute_barycenter(template):
+    # convert image to grayscale image
+    gray_image = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+
+    # convert the grayscale image to binary image
+    ret, thresh = cv2.threshold(gray_image, 127, 255, 0)
+
+    # calculate moments of binary image
+    M = cv2.moments(thresh)
+
+    # calculate x,y coordinate of center
+    cX = int(M["m10"] / M["m00"])
+    cY = int(M["m01"] / M["m00"])
+
+    return cX, cY
+
+
+def compute_GHT(matches):
+    pass    #WIP
+
+
 def main():
     hough = cv2.createGeneralizedHoughGuil()
     hough.setMaxAngle(5)
