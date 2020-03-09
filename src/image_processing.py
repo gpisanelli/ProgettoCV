@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+import visualization
+
 
 def convert_grayscale(img):
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -60,3 +62,11 @@ def transform_box_in_scene(box, scene, homography):
     test_scene[:, :, 2] = test_scene[:, :, 2] * mask
 
     return transformed_box, test_scene
+
+
+def find_contours(img):
+    img_copy = img.copy()
+    #ret, thresh = cv2.threshold(img_copy, 10, 200, cv2.THRESH_OTSU)
+    contours, hierarchy = cv2.findContours(img, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE)
+
+    return contours
