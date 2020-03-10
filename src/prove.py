@@ -63,16 +63,15 @@ matches = feature_matching.find_matches(des_t, des_s)
 barycenter = compute_barycenter(kp_t)
 barycenter_scene = compute_barycenter(kp_s)
 
-joining_vectors_dict = compute_joining_vectors_table(matches[:10], barycenter, kp_t, kp_s)
+joining_vectors_dict = compute_joining_vectors_table(matches, barycenter, kp_t, kp_s)
 print(len(kp_s))
 img3 = np.zeros(scene.shape, dtype=np.uint8)
 for train_idx in joining_vectors_dict:
     query_index, v = joining_vectors_dict[train_idx]
     point = kp_s[train_idx].pt
     p1 = (int(point[0]), int(point[1]))
-    print(v[1][0])
     p2 = (int(p1[0] + v[0][0]), int(p1[1] + v[1][0]))
-    cv2.line(img3, (int(p1[0]-v[0][0]), int(p1[1]-v[1][0])), (barycenter_scene[0],barycenter_scene[1]), (255,0,0), 1)
+    cv2.line(img3, p1, p2, (255,0,0), 1)
 
 cv2.circle(img3, (barycenter_scene[0],barycenter_scene[1]), 5, (0,0,255), -1)
 visualization.display_img(image_processing.resize_img(img3, 2))
