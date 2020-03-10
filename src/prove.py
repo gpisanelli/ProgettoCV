@@ -72,7 +72,7 @@ for train_idx in joining_vectors_dict:
     p1 = (int(point[0]), int(point[1]))
     print(v[1][0])
     p2 = (int(p1[0] + v[0][0]), int(p1[1] + v[1][0]))
-    cv2.line(img3, p1, (barycenter_scene[0]-p1[0],barycenter_scene[1]-p1[1]), (255,0,0), 1)
+    cv2.line(img3, (int(p1[0]-v[0][0]), int(p1[1]-v[1][0])), (barycenter_scene[0],barycenter_scene[1]), (255,0,0), 1)
 
 cv2.circle(img3, (barycenter_scene[0],barycenter_scene[1]), 5, (0,0,255), -1)
 visualization.display_img(image_processing.resize_img(img3, 2))
