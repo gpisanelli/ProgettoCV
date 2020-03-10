@@ -6,33 +6,6 @@ import load_images
 import visualization
 
 
-def compute_barycenter(keypoints):
-    x = np.mean([i.pt[0] for i in keypoints])
-    y = np.mean([i.pt[1] for i in keypoints])
-    return (x, y)
-
-
-def compute_joining_vectors_table(matches, barycenter, keypoints):
-    joining_vectors_dict = {}
-    for match in matches:
-        # table element[sceneIndex] = templateIndex, vector_tuple
-        joining_vectors_dict[match.trainIdx] = [match.queryIdx,
-                                                (barycenter[0] - keypoints[match.queryIdx].pt[0],
-                                                 barycenter[1] - keypoints[match.queryIdx].pt[1])]
-    return joining_vectors_dict
-
-
-def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
-    accumulator = np.zeroes(sceneImg_shape)
-    for i in range(len(kp_scene)):
-        accum_i, accum_j = joining_vectors[i][1][0] + kp_scene[i].pt[0], joining_vectors[i][1][1] + kp_scene[i].pt[1]
-        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1]:
-            accumulator[accum_i, accum_j] += 1
-
-
-    return accumulator
-
-
 # matches lista dMatch -> ogni dMatch è un oggetto con 4 elementi ->
 # -> distance tra i keypoint
 # -> imageIndex (sempre 0)
@@ -49,6 +22,65 @@ def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
 
 # https://answers.opencv.org/question/18436/what-to-do-with-dmatch-value/
 # http://www.programmersought.com/article/3827388529/
+
+
+def compute_barycenter(keypoints):
+    x = np.mean([i.pt[0] for i in keypoints])
+    y = np.mean([i.pt[1] for i in keypoints])
+    return [x, y]
+
+
+def compute_joining_vectors_table(matches, barycenter, box_keypoints, scene_keypoints):
+    joining_vectors_dict = {}
+    for match in matches:
+        box_kp = box_keypoints[match.queryIdx]
+        # table element[sceneIndex] = templateIndex, vector_tuple
+        vector = np.subtract(barycenter, box_kp.pt)
+        vector_scaled = vector * (box_kp.size / scene_keypoints[match.trainIdx].size)
+
+        vector_reshaped = np.reshape(vector_scaled, (2, 1))
+        rotation_to_apply = box_kp.angle - scene_keypoints[match.trainIdx].angle
+        vector_scaled_rotated = rotate(vector_reshaped, rotation_to_apply)
+
+        joining_vectors_dict[match.trainIdx] = (match.queryIdx, np.rint(vector_scaled_rotated))
+
+    return joining_vectors_dict
+
+
+# (cos(θ) −sin(θ))    (x)
+# (sin(θ) cos(θ) ) *  (y)
+# theta: angle in radians
+# vector: numpy array
+def rotate(theta, vector):
+    # Create rotation matrix
+    rot_matrix = np.array(((np.cos(theta), -np.sin(theta)),
+                           (np.sin(theta), np.cos(theta))))
+
+    # Apply the rotation matrix to the vector
+    return rot_matrix.dot(vector)
+
+
+def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
+    accumulator = np.zeroes(sceneImg_shape)
+    for i in range(len(kp_scene)):
+        accum_i = joining_vectors[i][1][0] + kp_scene[i].pt[0]
+        accum_j = joining_vectors[i][1][1] + kp_scene[i].pt[1]
+        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1]:
+            accumulator[accum_i, accum_j] += 1
+
+
+    return accumulator
+
+
+# returns the N max elements and indices in a
+def n_max(a, n):
+    indices = a.ravel().argsort()[-n:]
+    indices = (np.unravel_index(i, a.shape) for i in indices)
+    return [(a[i], i) for i in indices]
+
+
+def compute_GHT():
+
 
 def main():
     hough = cv2.createGeneralizedHoughGuil()
