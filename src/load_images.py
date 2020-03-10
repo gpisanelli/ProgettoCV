@@ -1,7 +1,6 @@
 import cv2
 import os.path
 
-
 boxes_dict = {
     '0.jpg': 'Nesquik Cioccomilk',
     '1.jpg': 'Choco Krave (Blu)',

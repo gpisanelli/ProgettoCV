@@ -1,8 +1,5 @@
 import time
 
-import cv2
-import numpy as np
-
 import feature_detection
 import feature_matching
 import image_processing
@@ -14,7 +11,7 @@ import visualization
 scene_names = [
     'e1.png','e2.png','e3.png','e4.png','e5.png'
     #'m1.png','m2.png','m3.png','m4.png','m5.png'
-    #,['h' + str(n) + '.jpg' for n in range(1, 6)]
+    #'h1.jpg','h2.jpg','h3.jpg','h4.jpg','h5.jpg'
 ]
 
 box_names = ['0.jpg','1.jpg','11.jpg','19.jpg','24.jpg','25.jpg','26.jpg']

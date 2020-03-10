@@ -12,7 +12,6 @@ def find_matches(des1, des2):
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     matches = flann.knnMatch(des1, des2, k=2)
 
-
     #bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
     #matches = bf.match(des1, des2)
 
