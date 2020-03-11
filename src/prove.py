@@ -104,6 +104,37 @@ barycenter_accumulator = compute_joining_vectors_table(matches, barycenter, kp_t
 #accumulator = compute_accumulator(joining_vectors_dict, scene.shape, kp_s)
 
 maxima = n_max(barycenter_accumulator, 5)
+#result = cv2.addWeighted(cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY), 1, (np.divide(barycenter_accumulator, np.max(barycenter_accumulator)) * 255).astype(np.uint8), 1, 0)
+#visualization.display_img(image_processing.resize_img(result, 2))
+#whites = np.copy(barycenter_accumulator)
+#whites[whites > 0] = 255
+#visualization.display_img(whites.astype(np.uint8))
+thr_acc = (barycenter_accumulator > 2) * barycenter_accumulator
+#visualization.display_img(thr_acc.astype(np.uint8))
 
-result = cv2.addWeighted(cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY), 1, (np.divide(barycenter_accumulator, np.max(barycenter_accumulator)) * 255).astype(np.uint8), 1, 0)
-visualization.display_img(image_processing.resize_img(result, 2))
+thr_index = np.argwhere(thr_acc > 0)
+print(thr_index)
+
+from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
+
+Z = np.float32(thr_index)
+#Z = np.float32(n_max(barycenter_accumulator, 50))
+print(Z)
+
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+ret, label, center = cv2.kmeans(Z, 1, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+# Now separate the data, Note the flatten()
+A = Z[label.ravel() == 0]
+B = Z[label.ravel() == 1]
+
+# Plot the data
+plt.scatter(A[:, 0], A[:, 1])
+plt.scatter(B[:, 0], B[:, 1], c='r')
+plt.scatter(center[:, 0], center[:, 1], s=80, c='y', marker='s')
+plt.xlabel('Height'), plt.ylabel('Weight')
+plt.show()
+
+print(center)
