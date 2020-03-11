@@ -46,7 +46,7 @@ def compute_joining_vectors_table(m, b, box_keypoints, scene_keypoints):
 
 
 def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
-    accumulator = np.zeros(sceneImg_shape)
+    accumulator = np.zeros((sceneImg_shape[0], sceneImg_shape[1]))
     for i in joining_vectors:
         accum_i = joining_vectors[i][1][0] + kp_scene[i].pt[0]
         accum_j = joining_vectors[i][1][1] + kp_scene[i].pt[1]
