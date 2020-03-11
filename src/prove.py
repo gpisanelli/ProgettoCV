@@ -82,8 +82,8 @@ def compute_barycenter(keypoints):
     return [x, y]
 
 
-template_path = '../images/hp.jpg'
-scene_path = '../images/hp_2.jpg'
+template_path = '../images/object_detection_project/models/0.jpg'
+scene_path = '../images/object_detection_project/scenes/e1.png'
 template = load_images.load_img_color(template_path)
 scene = load_images.load_img_color(scene_path)
 
@@ -97,8 +97,13 @@ barycenter = compute_barycenter(kp_t)
 barycenter_scene = compute_barycenter(kp_s)
 
 barycenter_accumulator = compute_joining_vectors_table(matches, barycenter, kp_t, kp_s)
-visualization.display_img(image_processing.resize_img((np.divide(barycenter_accumulator, np.max(barycenter_accumulator)) * 255).astype(np.uint8), 2))
+#visualization.display_img(image_processing
+#                          .resize_img((np.divide(barycenter_accumulator, np.max(barycenter_accumulator)) * 255)
+#                                      .astype(np.uint8), 2))
 
 #accumulator = compute_accumulator(joining_vectors_dict, scene.shape, kp_s)
 
-maxima = n_max(barycenter_accumulator, 20)
+maxima = n_max(barycenter_accumulator, 5)
+
+result = cv2.addWeighted(cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY), 1, (np.divide(barycenter_accumulator, np.max(barycenter_accumulator)) * 255).astype(np.uint8), 1, 0)
+visualization.display_img(image_processing.resize_img(result, 2))
