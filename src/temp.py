@@ -61,7 +61,7 @@ def rotate(theta, vector):
 
 
 def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
-    accumulator = np.zeroes(sceneImg_shape)
+    accumulator = np.zeros(sceneImg_shape)
     for i, kp in np.ndenumerate(kp_scene):
         accum_i = joining_vectors[i][1][0] + kp.pt[0]
         accum_j = joining_vectors[i][1][1] + kp.pt[1]
