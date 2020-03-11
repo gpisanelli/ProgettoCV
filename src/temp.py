@@ -78,12 +78,12 @@ def n_max(a, n):
     arr = a.reshape((a.shape[0] * a.shape[1]))
 
 
-max_indexes = arr.argsort()[-n:][::-1]
-for index in max_indexes:
-    row = index // width
-    col = index % width
-    result.append((row, col))
-return result
+    max_indexes = arr.argsort()[-n:][::-1]
+    for index in max_indexes:
+        row = index // width
+        col = index % width
+        result.append((row, col))
+    return result
 
 
 def compute_GHT(box_keypoints, scene_keypoints, matches, sceneImgShape):

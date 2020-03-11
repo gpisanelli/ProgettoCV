@@ -68,7 +68,6 @@ def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
         if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1]:
             accumulator[accum_i, accum_j] += 1
 
-
     return accumulator
 
 
@@ -80,7 +79,7 @@ def n_max(a, n):
 
 
 def compute_GHT():
-
+    pass
 
 def main():
     hough = cv2.createGeneralizedHoughGuil()
