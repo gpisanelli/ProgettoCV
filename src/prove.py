@@ -28,7 +28,8 @@ def rotate(vector, theta):
 
 
 def compute_joining_vectors_table(m, b, box_keypoints, scene_keypoints):
-    joining_vectors_d = {}
+    barycenter_accumulator = np.zeros((scene.shape[0], scene.shape[1]), dtype=int)
+
     for match in m:
         box_kp = box_keypoints[match.queryIdx]
         scene_kp = scene_keypoints[match.trainIdx]
@@ -40,9 +41,14 @@ def compute_joining_vectors_table(m, b, box_keypoints, scene_keypoints):
         rotation_to_apply = scene_kp.angle - box_kp.angle
         vector_scaled_rotated = rotate(vector_reshaped, math.radians(rotation_to_apply))
         vector_scaled_rotated = vector_scaled_rotated.reshape(2)
-        joining_vectors_d[match.trainIdx] = (match.queryIdx, vector_scaled_rotated)
 
-    return joining_vectors_d
+        calc_bar = [int(round(scene_kp.pt[0]+vector_scaled_rotated[0])),
+                    int(round(scene_kp.pt[1]+vector_scaled_rotated[1]))]
+
+        if 0 <= calc_bar[0] < barycenter_accumulator.shape[1] and 0 <= calc_bar[1] < barycenter_accumulator.shape[0]:
+            barycenter_accumulator[calc_bar[1], calc_bar[0]] += 1
+
+    return barycenter_accumulator
 
 
 def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
@@ -57,11 +63,17 @@ def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
     return accumulator
 
 
-# returns the N max elements and indices in a
+# returns the N max indexes couples in a
 def n_max(a, n):
-    indices = a.ravel().argsort()[-n:]
-    indices = (np.unravel_index(i, a.shape) for i in indices)
-    return [(a[i], i) for i in indices]
+    width = a.shape[1]
+    result = []
+    arr = a.reshape((a.shape[0] * a.shape[1]))
+    max_indexes = arr.argsort()[-n:][::-1]
+    for index in max_indexes:
+        row = index // width
+        col = index % width
+        result.append((row, col))
+    return result
 
 
 def compute_barycenter(keypoints):
@@ -84,28 +96,9 @@ matches = feature_matching.find_matches(des_t, des_s)
 barycenter = compute_barycenter(kp_t)
 barycenter_scene = compute_barycenter(kp_s)
 
-joining_vectors_dict = compute_joining_vectors_table(matches, barycenter, kp_t, kp_s)
+barycenter_accumulator = compute_joining_vectors_table(matches, barycenter, kp_t, kp_s)
+visualization.display_img(image_processing.resize_img((np.divide(barycenter_accumulator, np.max(barycenter_accumulator)) * 255).astype(np.uint8), 2))
 
-img3 = np.zeros(scene.shape, dtype=np.uint8)
-for train_idx in joining_vectors_dict:
-    query_index, v = joining_vectors_dict[train_idx]
-    point = kp_s[train_idx].pt
-    p1 = (int(point[0]), int(point[1]))
-    p2 = (int(p1[0] + v[0]), int(p1[1] + v[1]))
-    cv2.line(img3, p1, p2, (50, 50, 50), 1)
+#accumulator = compute_accumulator(joining_vectors_dict, scene.shape, kp_s)
 
-for train_idx in joining_vectors_dict:
-    query_index, v = joining_vectors_dict[train_idx]
-    point = kp_s[train_idx].pt
-    p1 = (int(point[0]), int(point[1]))
-    p2 = (int(p1[0] + v[0]), int(p1[1] + v[1]))
-    cv2.circle(img3, p1, 1, (0, 255, 0), -1)
-    cv2.rectangle(img3, p2, (p2[0]+2, p2[1]+2), (0, 0, 255), -1)
-
-visualization.display_img(image_processing.resize_img(img3, 2))
-
-
-accumulator = compute_accumulator(joining_vectors_dict, scene.shape, kp_s)
-print(accumulator)
-
-visualization.display_img(accumulator)
+maxima = n_max(barycenter_accumulator, 20)
