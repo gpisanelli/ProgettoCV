@@ -1,5 +1,4 @@
 import math
-import time
 
 import cv2
 import numpy as np
@@ -9,6 +8,10 @@ import feature_matching
 import image_processing
 import load_images
 import visualization
+import cv2
+from cv2 import xfeatures2d
+import sklearn as sk
+from sklearn.cluster import KMeans
 
 
 # (cos(θ) −sin(θ))    (x)
@@ -25,20 +28,9 @@ def rotate(vector, theta):
     return result
 
 
-def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
-    accumulator = np.zeros(sceneImg_shape)
-    for i in joining_vectors:
-        accum_i = joining_vectors[i][1][0] + kp_scene[i].pt[0]
-        accum_j = joining_vectors[i][1][1] + kp_scene[i].pt[1]
 
-        if 0 <= accum_i < accumulator.shape[1] and 0 <= accum_j < accumulator.shape[0]:
-            accumulator[int(round(accum_j)), int(round(accum_i))] += 1
-
-    return accumulator
-
-
-def compute_joining_vectors_table(m, b, box_keypoints, scene_keypoints, scene_width, scene_height):
-    b_accumulator = np.zeros((scene_height, scene_width), dtype=int)
+def compute_joining_vectors_table(m, b, box_keypoints, scene_keypoints):
+    barycenter_accumulator = np.zeros((scene.shape[0], scene.shape[1]), dtype=int)
 
     for match in m:
         box_kp = box_keypoints[match.queryIdx]
@@ -55,11 +47,22 @@ def compute_joining_vectors_table(m, b, box_keypoints, scene_keypoints, scene_wi
         calc_bar = [int(round(scene_kp.pt[0]+vector_scaled_rotated[0])),
                     int(round(scene_kp.pt[1]+vector_scaled_rotated[1]))]
 
-        if 0 <= calc_bar[0] < b_accumulator.shape[1] \
-                and 0 <= calc_bar[1] < b_accumulator.shape[0]:
-            b_accumulator[calc_bar[1], calc_bar[0]] += 1
+        if 0 <= calc_bar[0] < barycenter_accumulator.shape[1] and 0 <= calc_bar[1] < barycenter_accumulator.shape[0]:
+            barycenter_accumulator[calc_bar[1], calc_bar[0]] += 1
 
-    return b_accumulator
+    return barycenter_accumulator
+
+
+def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
+    accumulator = np.zeros(sceneImg_shape)
+    for i in joining_vectors:
+        accum_i = joining_vectors[i][1][0] + kp_scene[i].pt[0]
+        accum_j = joining_vectors[i][1][1] + kp_scene[i].pt[1]
+
+        if 0 <= accum_i < accumulator.shape[1] and 0 <= accum_j < accumulator.shape[0]:
+            accumulator[int(round(accum_j)), int(round(accum_i))] += 1
+
+    return accumulator
 
 
 # returns the N max indexes couples in a
@@ -71,9 +74,7 @@ def n_max(a, n):
     for index in max_indexes:
         row = index // width
         col = index % width
-        if a[row, col] > 0:
-            result.append((row, col))
-
+        result.append((row, col))
     return result
 
 
@@ -83,75 +84,172 @@ def compute_barycenter(keypoints):
     return [x, y]
 
 
-def remove_noise(barycenter_accumulator):
-    visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
-    # Find coordinates of points that received at least one vote
-    points = cv2.findNonZero(barycenter_accumulator)
-    points = points.reshape((points.shape[0], 2))
-    new_accumulator = np.zeros(barycenter_accumulator.shape, dtype=np.uint8)
+def opencv_kmeans(points):
+    from matplotlib import pyplot as plt
+    import matplotlib
+    matplotlib.use('TkAgg')
 
-    dist = 10
+    Z = np.float32(points)
+    # Z = np.float32(n_max(barycenter_accumulator, 50))
+    # print(Z)
 
-    for x, y in points:
-        votes_count = np.sum(barycenter_accumulator[y-dist:y+dist, x-dist:x+dist])
-        # If there aren't at least MIN_VOTES votes in the surrounding patch and in the same position, remove the vote
-        if votes_count - 1 >= 2:
-            new_accumulator[y, x] = barycenter_accumulator[y, x]
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
 
-    return new_accumulator
+    max_range = 11 if len(points) > 10 else len(points) + 1
+    compactnesses = {}
+    labels = {}
+    centers = {}
+    for k in range(1, max_range):
+        compactness, label, center = cv2.kmeans(Z, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+        compactnesses[k] = compactness
+        labels[k] = label
+        centers[k] = center
+
+    max_key_compactnesses = max(compactnesses, key=compactnesses.get)
+    best_compactness = compactnesses[max_key_compactnesses]
+    best_label = labels[max_key_compactnesses]
+    best_center = centers[max_key_compactnesses]
+
+    print('Best compactness = ', best_compactness)
+    print('Best label = ', best_label)
+    print('Best center = ', best_center)
+
+    # Now separate the data, Note the flatten()
+    A = Z[best_label.ravel() == 0]
+    B = Z[best_label.ravel() == 1]
+
+    # Plot the data
+    plt.scatter(A[:, 0], A[:, 1])
+    plt.scatter(B[:, 0], B[:, 1], c='r')
+    plt.scatter(best_center[:, 0], best_center[:, 1], s=80, c='y', marker='s')
+    plt.xlabel('x'), plt.ylabel('y')
+    plt.show()
+
+    return best_center
 
 
-def find_centers(barycenter_accumulator):
-    centers = []
+def sklearn_kmeans(points):
+    X = np.array(points)
+    # print(X)
+    # kmeans in sklearn doesn't allow a cluster per point, that's why range doesn't have +1 in the else
+    max_range = 11 if len(points) > 10 else len(points)
+    models = {}
+    silhouettes = {}
+    calinskis = {}
+    davieses = {}
+    for k in range(1, max_range):
+        kmeans = KMeans(n_clusters=k).fit(X)
+        labels = kmeans.labels_
+        models[k] = kmeans
+        # metrics can't score a single cluster, i have to give an estimated score :/
+        if len(np.unique(labels)) == 1:
+            # silhouette varies between -1 and 1, 0.9 is pretty high
+            silhouettes[k] = 0.9
+            # calinski is better if higher (?)
+            calinskis[k] = 300
+            # davies is better if lower (?)
+            davieses[k] = 0.1
+        else:
+            silhouettes[k] = sk.metrics.silhouette_score(X, labels, metric='euclidean')
+            calinskis[k] = sk.metrics.calinski_harabasz_score(X, labels)
+            davieses[k] = sk.metrics.davies_bouldin_score(X, labels)
 
-    dist = 30
-    maxima = n_max(barycenter_accumulator, 1000)
+    # higher score is better
+    max_key_silhouettes = max(silhouettes, key=silhouettes.get)
+    best_model_silhouette = models[max_key_silhouettes]
+    print('Best silhouette = ', silhouettes[max_key_silhouettes])
+    print('Best silhouette labels = ', best_model_silhouette.labels_)
+    print('Bets silhouette centroids = ', best_model_silhouette.cluster_centers_)
+    # higher score is better
+    max_key_calinskis = max(calinskis, key=calinskis.get)
+    best_model_calinski = models[max_key_calinskis]
+    print('Best calinski = ', calinskis[max_key_calinskis])
+    print('Best calinski labels = ', best_model_calinski.labels_)
+    print('Bets calinski centroids = ', best_model_calinski.cluster_centers_)
+    # lower score is better
+    min_key_davieses = min(davieses, key=davieses.get)
+    best_model_davies = models[min_key_davieses]
+    print('Best davis = ', davieses[min_key_davieses])
+    print('Best davis labels = ', best_model_davies.labels_)
+    print('Bets davis centroids = ', best_model_davies.cluster_centers_)
 
-    for y, x in maxima:
-        curr_vote = barycenter_accumulator[y, x]
-        if curr_vote != 0:
-            barycenter_accumulator[y - dist:y + dist, x - dist:x + dist] = 0
-            barycenter_accumulator[y, x] = curr_vote
-            centers.append((x, y))
-
-    visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
-
-    return centers
+    return best_model_silhouette.cluster_centers_, best_model_calinski.cluster_centers_, best_model_davies.cluster_centers_
 
 
-def prove():
-    template_path = '../images/object_detection_project/models/0.jpg'
-    scene_path = '../images/object_detection_project/scenes/h2.jpg'
 
-    template_color = load_images.load_img_color(template_path)
-    template = image_processing.convert_grayscale(template_color)
-    template = image_processing.equalize_histogram(template)
-    if template.shape[0] >= 400:
-        template = image_processing.blur_image(template)
+template_path = '../images/object_detection_project/models/24.jpg'
+scene_path = '../images/object_detection_project/scenes/m4.png'
+template = load_images.load_img_color(template_path)
+scene = load_images.load_img_color(scene_path)
 
-    scene_color = load_images.load_img_color(scene_path)
-    scene = image_processing.convert_grayscale(scene_color)
-    scene = image_processing.equalize_histogram(scene)
-    scene = image_processing.sharpen_img(scene)
+sift = xfeatures2d.SIFT_create()
+kp_t, des_t = feature_detection.detect_features_SIFT(template)
+kp_s, des_s = feature_detection.detect_features_SIFT(scene)
 
-    kp_t, des_t = feature_detection.detect_features_SIFT(template)
+matches = feature_matching.find_matches(des_t, des_s)
 
-    kp_s, des_s = feature_detection.detect_features_SIFT(scene)
-    matches = feature_matching.find_matches(des_t, des_s)
-    barycenter = compute_barycenter(kp_t)
-    barycenter_accumulator = compute_joining_vectors_table(matches, barycenter, kp_t, kp_s, scene.shape[1],
-                                                           scene.shape[0])
+barycenter = compute_barycenter(kp_t)
+barycenter_scene = compute_barycenter(kp_s)
 
-    barycenter_accumulator = remove_noise(barycenter_accumulator)
-    centers = find_centers(barycenter_accumulator)
+barycenter_accumulator = compute_joining_vectors_table(matches, barycenter, kp_t, kp_s)
+visualization.display_img(image_processing
+                          .resize_img((np.divide(barycenter_accumulator, np.max(barycenter_accumulator)) * 255)
+                                      .astype(np.uint8), 2))
 
-    result = np.zeros(scene_color.shape, dtype=np.uint8)
-    result = cv2.addWeighted(scene_color, 0.5, result, 0.5, 0)
-    for c in centers:
-        cv2.circle(result, c, 20, (0,0,255), 3)
-        cv2.circle(result, c, 3, (0,255,0), -1)
+#accumulator = compute_accumulator(joining_vectors_dict, scene.shape, kp_s)
 
-    #visualization.display_img(image_processing.resize_img(barycenter_accumulator.astype(np.uint8), 2))
-    visualization.display_img(image_processing.resize_img(result, 2))
+maxima = n_max(barycenter_accumulator, 100)
+result = cv2.addWeighted(cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY), 1, (np.divide(barycenter_accumulator, np.max(barycenter_accumulator)) * 255).astype(np.uint8), 1, 0)
+visualization.display_img(image_processing.resize_img(result, 2))
+whites = np.copy(barycenter_accumulator)
+whites[whites > 0] = 255
+visualization.display_img(whites.astype(np.uint8))
 
-prove()
+
+'''
+thr_acc = (barycenter_accumulator > 2) * barycenter_accumulator
+visualization.display_img(thr_acc.astype(np.uint8))
+thr_index = np.argwhere(thr_acc > 0)
+print(thr_index)
+
+from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
+
+Z = np.float32(thr_index)
+#Z = np.float32(n_max(barycenter_accumulator, 50))
+print(Z)
+
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+ret, label, center = cv2.kmeans(Z, 1, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+# Now separate the data, Note the flatten()
+A = Z[label.ravel() == 0]
+B = Z[label.ravel() == 1]
+
+# Plot the data
+plt.scatter(A[:, 0], A[:, 1])
+plt.scatter(B[:, 0], B[:, 1], c='r')
+plt.scatter(center[:, 0], center[:, 1], s=80, c='y', marker='s')
+plt.xlabel('Height'), plt.ylabel('Weight')
+plt.show()
+
+print(center)
+'''
+
+'''
+thr_acc = (barycenter_accumulator > 2) * barycenter_accumulator
+visualization.display_img(thr_acc.astype(np.uint8))
+points_reached_by_at_least_two_vectors = np.argwhere(thr_acc > 0)
+
+# to be set to the wanted points
+considered_points = maxima
+
+length_considered_points = len(considered_points)
+print('Length considered points = ', length_considered_points)
+if length_considered_points > 1:
+    # silhouette_centroids, calinski_centroids, davies_centroids = sklearn_kmeans(points_reached_by_at_least_two_vectors)
+    opencv_centroids = opencv_kmeans(considered_points)
+elif length_considered_points == 1:
+    print('Single point present, centroid = ', considered_points[0])
+'''
