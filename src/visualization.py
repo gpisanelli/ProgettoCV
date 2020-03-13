@@ -21,7 +21,7 @@ else:
 
 def display_img(img, width=0, title=None, wait=True):
     if title is None:
-        title = str(time.time_ns())
+        title = str(time.time())
     if width != 0:
         img = image_processing.resize_img_width(img, width)
 
