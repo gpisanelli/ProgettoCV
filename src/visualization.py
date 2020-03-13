@@ -61,7 +61,7 @@ def oversized_bool_list(img):
 def draw_polygons(image, polygons):
     img_copy = image.copy()
     for polygon in polygons:
-        cv2.polylines(img_copy, [polygon], True, (0, 255, 0), 5)
+        cv2.polylines(img_copy, [polygon], True, (0, 255, 0), 2)
 
     return img_copy
 

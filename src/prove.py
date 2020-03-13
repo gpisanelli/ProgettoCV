@@ -8,6 +8,7 @@ import feature_detection
 import feature_matching
 import image_processing
 import load_images
+import object_validation
 import visualization
 
 
@@ -37,8 +38,30 @@ def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
     return accumulator
 
 
-def compute_joining_vectors_table(m, b, box_keypoints, scene_keypoints, scene_width, scene_height):
+def filter_matches(matches_barycenters, barycenters):
+    good_matches = {}
+    max_dist = 50
+
+    for i in range(len(barycenters)):
+        good_matches[i] = []
+
+    for match, vector in matches_barycenters:
+        found = False
+        i = 0
+        while not found and i < len(barycenters):
+            b_x, b_y, = barycenters[i]
+            if math.sqrt((vector[0] - b_x)**2 + (vector[1] - b_y)**2) <= max_dist:
+                good_matches[i].append(match)
+                found = True
+            i += 1
+
+    return good_matches
+
+
+# returns barycenter accumulator and a list of (matches, supposed_barycenter) useful for filter_matches function
+def compute_barycenter_accumulator(m, b, box_keypoints, scene_keypoints, scene_width, scene_height):
     b_accumulator = np.zeros((scene_height, scene_width), dtype=int)
+    match_barycenter_list = []
 
     for match in m:
         box_kp = box_keypoints[match.queryIdx]
@@ -52,14 +75,17 @@ def compute_joining_vectors_table(m, b, box_keypoints, scene_keypoints, scene_wi
         vector_scaled_rotated = rotate(vector_reshaped, math.radians(rotation_to_apply))
         vector_scaled_rotated = vector_scaled_rotated.reshape(2)
 
-        calc_bar = [int(round(scene_kp.pt[0]+vector_scaled_rotated[0])),
-                    int(round(scene_kp.pt[1]+vector_scaled_rotated[1]))]
+        bar_x = int(round(scene_kp.pt[0]+vector_scaled_rotated[0]))
+        bar_y = int(round(scene_kp.pt[1]+vector_scaled_rotated[1]))
+        calc_bar = [bar_x, bar_y]
+
+        match_barycenter_list.append((match, (bar_x, bar_y)))
 
         if 0 <= calc_bar[0] < b_accumulator.shape[1] \
                 and 0 <= calc_bar[1] < b_accumulator.shape[0]:
             b_accumulator[calc_bar[1], calc_bar[0]] += 1
 
-    return b_accumulator
+    return b_accumulator, match_barycenter_list
 
 
 # returns the N max indexes couples in a
@@ -72,7 +98,7 @@ def n_max(a, n):
         row = index // width
         col = index % width
         if a[row, col] > 0:
-            result.append((row, col))
+            result.append(((row, col), a[row, col]))
 
     return result
 
@@ -101,37 +127,69 @@ def remove_noise(barycenter_accumulator):
     return new_accumulator
 
 
-def find_centers(barycenter_accumulator):
+def find_centers1(barycenter_accumulator):
     centers = []
-
-    dist = 30
+    visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8), title='Before')
+    dist = 50
     maxima = n_max(barycenter_accumulator, 1000)
+    maxima[::-1].sort(key=lambda m: m[1])
 
-    for y, x in maxima:
-        curr_vote = barycenter_accumulator[y, x]
-        if curr_vote != 0:
-            barycenter_accumulator[y - dist:y + dist, x - dist:x + dist] = 0
-            barycenter_accumulator[y, x] = curr_vote
+    for m in maxima:
+        y, x = m[0]
+        votes = barycenter_accumulator[y, x]
+
+        if votes > 0:
+            for row in range(y - dist, y + dist):
+                for col in range(x - dist, x + dist):
+                    if 0 <= row < barycenter_accumulator.shape[0] and 0 <= col < barycenter_accumulator.shape[1]:
+                        barycenter_accumulator[row, col] = 0
+            barycenter_accumulator[y, x] = votes
             centers.append((x, y))
 
+    return centers
+
+
+# Performs a dilation to group near pixels in a blob, of which we compute the barycenter
+def find_centers(barycenter_accumulator):
     visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
+    barycenter_accumulator[barycenter_accumulator > 0] = 255
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (31,31))
+    barycenter_accumulator = cv2.dilate(barycenter_accumulator, kernel=kernel, iterations=1)
+    visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
+
+    # Find contours
+    contours, hierarchy = cv2.findContours(barycenter_accumulator, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Compute centers of the contours
+    centers = []
+    for cnt in contours:
+        M = cv2.moments(cnt)
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+        centers.append((cx, cy))
+
+    # Search point with more votes surrounding the centers
 
     return centers
 
 
 def prove():
-    template_path = '../images/object_detection_project/models/0.jpg'
-    scene_path = '../images/object_detection_project/scenes/h2.jpg'
+    template_path = '../images/object_detection_project/models/9.jpg'
+    scene_path = '../images/object_detection_project/scenes/h1.jpg'
 
     template_color = load_images.load_img_color(template_path)
     template = image_processing.convert_grayscale(template_color)
     template = image_processing.equalize_histogram(template)
+    template = image_processing.resize_img(template, 0.5)
     if template.shape[0] >= 400:
         template = image_processing.blur_image(template)
+        visualization.display_img(template)
 
     scene_color = load_images.load_img_color(scene_path)
     scene = image_processing.convert_grayscale(scene_color)
     scene = image_processing.equalize_histogram(scene)
+    scene = image_processing.resize_img(scene, 2)
+    scene_color = image_processing.resize_img(scene_color, 2)
     scene = image_processing.sharpen_img(scene)
 
     kp_t, des_t = feature_detection.detect_features_SIFT(template)
@@ -139,20 +197,55 @@ def prove():
     kp_s, des_s = feature_detection.detect_features_SIFT(scene)
     matches = feature_matching.find_matches(des_t, des_s)
     barycenter = compute_barycenter(kp_t)
-    barycenter_accumulator = compute_joining_vectors_table(matches, barycenter, kp_t, kp_s, scene.shape[1],
-                                                           scene.shape[0])
+    barycenter_accumulator, matches_barycenters = \
+        compute_barycenter_accumulator(matches, barycenter, kp_t, kp_s, scene.shape[1], scene.shape[0])
 
     barycenter_accumulator = remove_noise(barycenter_accumulator)
     centers = find_centers(barycenter_accumulator)
 
+    good_matches = filter_matches(matches_barycenters, centers)
+
     result = np.zeros(scene_color.shape, dtype=np.uint8)
     result = cv2.addWeighted(scene_color, 0.5, result, 0.5, 0)
-    for c in centers:
-        cv2.circle(result, c, 20, (0,0,255), 3)
-        cv2.circle(result, c, 3, (0,255,0), -1)
+
+    colors = [
+        (255, 0, 0),
+        (0, 255, 0),
+        (0, 0, 255),
+        (255, 0, 255),
+        (0, 255, 255),
+        (255, 255, 255),
+        (255, 255, 255),
+        (255, 255, 255),
+        (255, 255, 255),
+        (255, 255, 255),
+        (255, 255, 255),
+        (255, 255, 255),
+        (255, 255, 255),
+        (255, 255, 255)
+    ]
+
+    for i in good_matches:
+        for m in good_matches[i]:
+            pt = kp_s[m.trainIdx].pt
+            cv2.circle(result, (int(pt[0]), int(pt[1])), 2, colors[i], -1)
 
     visualization.display_img(result)
 
+    visualization_scene = scene_color.copy()
+    for i in good_matches:
+        if len(good_matches[i]) >= 6:
+            bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i], kp_t, kp_s, template)
+
+            # Object validation
+            polygon_convex = object_validation.is_convex_polygon(bounds)
+            if polygon_convex:
+                visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
+        else:
+            # Draw rectangle
+            a
+
+    visualization.display_img(visualization_scene)
 
 prove()
 

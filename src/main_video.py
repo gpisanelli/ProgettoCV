@@ -110,7 +110,7 @@ def run():
                 matches = feature_matching.find_matches(des_template, des_scene)
                 if len(matches) > 10:
                     # Object detection
-                    bounds, homography, used_template_points, used_scene_points = feature_matching.find_object(matches, kp_template, kp_scene, proc_template)
+                    bounds, homography, used_template_points, used_scene_points, _ = feature_matching.find_object(matches, kp_template, kp_scene, proc_template)
 
                     # Object validation
                     polygon_convex = object_validation.is_convex_polygon(bounds)

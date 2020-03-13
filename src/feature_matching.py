@@ -18,7 +18,7 @@ def find_matches(des1, des2):
     # Keep only good matches
     good_matches = []
     for match1, match2 in matches:
-        if match1.distance < 0.7 * match2.distance:
+        if match1.distance < 0.8 * match2.distance:
             good_matches.append(match1)
 
     return good_matches
@@ -32,7 +32,6 @@ def find_object(matches, kp1, kp2, box_img):
 
     h = box_img.shape[0]
     w = box_img.shape[1]
-
     # Find bounds of the object in the scene
     pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
     dst = cv2.perspectiveTransform(pts, M)
