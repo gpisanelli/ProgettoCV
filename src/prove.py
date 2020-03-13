@@ -96,18 +96,15 @@ def remove_noise(barycenter_accumulator):
         votes_count = np.sum(barycenter_accumulator[y-dist:y+dist, x-dist:x+dist])
         # If there aren't at least MIN_VOTES votes in the surrounding patch and in the same position, remove the vote
         if votes_count - 1 >= 2:
-            new_accumulator[y, x] = 255
+            new_accumulator[y, x] = barycenter_accumulator[y, x]
 
     return new_accumulator
 
 
-# Performs a dilation to group near pixels in a blob, of which we compute the barycenter
 def find_centers(barycenter_accumulator):
-    visualization.display_img(barycenter_accumulator)
     centers = []
 
-    dist = 40
-    # Dilation
+    dist = 30
     maxima = n_max(barycenter_accumulator, 1000)
 
     for y, x in maxima:
@@ -117,23 +114,7 @@ def find_centers(barycenter_accumulator):
             barycenter_accumulator[y, x] = curr_vote
             centers.append((x, y))
 
-    #kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (31,31))
-    #kernel = np.ones((3, 3), np.uint8)
-    #barycenter_accumulator = cv2.dilate(barycenter_accumulator, kernel=kernel, iterations=1)
-    visualization.display_img(barycenter_accumulator)
-
-    # Find contours
-    #contours, hierarchy = cv2.findContours(barycenter_accumulator, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Compute centers of the contours
-    #centers = []
-    #for cnt in contours:
-    #    M = cv2.moments(cnt)
-    #    cx = int(M['m10'] / M['m00'])
-    #    cy = int(M['m01'] / M['m00'])
-    #    centers.append((cx, cy))
-
-    # Search point with more votes surrounding the centers
+    visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
 
     return centers
 
