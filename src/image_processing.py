@@ -16,6 +16,9 @@ def equalize_histogram(img):
     return img
 
 
+def blur_image(img):
+    return cv2.GaussianBlur(img, (9, 9), 5)
+
 def sharpen_img(img):
     blurred = cv2.GaussianBlur(img, (0, 0), 3)
     return cv2.addWeighted(img, 1.5, blurred, -0.5, 0)
@@ -26,7 +29,7 @@ def add_images(img1, weight1, img2, weight2):
 
 
 def denoise_img(img):
-    return cv2.fastNlMeansDenoising(img, None, 10, 7, 21)
+    return cv2.fastNlMeansDenoising(img, None, 10, 7, 11)
 
 
 def resize_img(img, scale_factor):

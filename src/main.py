@@ -37,7 +37,8 @@ def preprocess_box(b):
     # Preprocessing (box image)
     pr_box = image_processing.convert_grayscale(pr_box)
     pr_box = image_processing.equalize_histogram(pr_box)
-    pr_box = image_processing.sharpen_img(pr_box)
+    if pr_box.shape[0] >= 300:
+        pr_box = image_processing.blur_image(pr_box)
 
     return pr_box
 
@@ -46,7 +47,6 @@ def preprocess_scene(s):
     # Preprocessing (scene image)
     pr_scene = s.copy()
     pr_scene = image_processing.convert_grayscale(pr_scene)
-    pr_scene = image_processing.resize_img(pr_scene, 2)
     pr_scene = image_processing.equalize_histogram(pr_scene)
     pr_scene = image_processing.sharpen_img(pr_scene)
 
@@ -68,7 +68,6 @@ def main():
         kp_scene, des_scene = feature_detection.detect_features_SIFT(proc_scene)
         print('\nTIME DETECTION: ', time.time() - s, '\n')
 
-        s = time.time()
         for box_name in box_names:
             # Box features retrieval
             box, proc_box, kp_box, des_box = dict_box_features[box_name]
