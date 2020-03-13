@@ -34,7 +34,6 @@ def precompute_box_features():
 
 def preprocess_box(b):
     pr_box = b.copy()
-    # Preprocessing (box image)
     pr_box = image_processing.convert_grayscale(pr_box)
     pr_box = image_processing.equalize_histogram(pr_box)
     if pr_box.shape[0] >= 300:

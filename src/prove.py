@@ -151,7 +151,7 @@ def prove():
         cv2.circle(result, c, 20, (0,0,255), 3)
         cv2.circle(result, c, 3, (0,255,0), -1)
 
-    #visualization.display_img(image_processing.resize_img(barycenter_accumulator.astype(np.uint8), 2))
-    visualization.display_img(image_processing.resize_img(result, 2))
+    visualization.display_img(result)
+
 
 prove()
