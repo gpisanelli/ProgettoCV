@@ -40,7 +40,7 @@ def compute_accumulator(joining_vectors, sceneImg_shape, kp_scene):
 
 def filter_matches(matches_barycenters, barycenters):
     good_matches = {}
-    max_dist = 70
+    max_dist = 80
 
     for i in range(len(barycenters)):
         good_matches[i] = (barycenters[i], [])
@@ -110,13 +110,13 @@ def compute_barycenter(keypoints):
 
 
 def remove_noise(barycenter_accumulator):
-    visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
+    #visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
     # Find coordinates of points that received at least one vote
     points = cv2.findNonZero(barycenter_accumulator)
     points = points.reshape((points.shape[0], 2))
     new_accumulator = np.zeros(barycenter_accumulator.shape, dtype=np.uint8)
 
-    dist = 10
+    dist = 20
 
     for x, y in points:
         votes_count = np.sum(barycenter_accumulator[y - dist:y + dist, x - dist:x + dist])
@@ -129,8 +129,8 @@ def remove_noise(barycenter_accumulator):
 
 def find_centers1(barycenter_accumulator):
     centers = []
-    visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8),
-                              title='Before')
+    #visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8),
+    #                          title='Before')
     dist = 50
     maxima = n_max(barycenter_accumulator, 1000)
     maxima[::-1].sort(key=lambda m: m[1])
@@ -152,11 +152,11 @@ def find_centers1(barycenter_accumulator):
 
 # Performs a dilation to group near pixels in a blob, of which we compute the barycenter
 def find_centers(barycenter_accumulator):
-    visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
+    #visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
     barycenter_accumulator[barycenter_accumulator > 0] = 255
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (31, 31))
     barycenter_accumulator = cv2.dilate(barycenter_accumulator, kernel=kernel, iterations=1)
-    visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
+    #visualization.display_img((barycenter_accumulator / np.max(barycenter_accumulator) * 255).astype(np.uint8))
 
     # Find contours
     contours, hierarchy = cv2.findContours(barycenter_accumulator, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -181,16 +181,10 @@ def prove():
     template_color = load_images.load_img_color(template_path)
     template = image_processing.convert_grayscale(template_color)
     template = image_processing.equalize_histogram(template)
-    template = image_processing.resize_img(template, 0.5)
-    if template.shape[0] >= 400:
-        template = image_processing.blur_image(template)
-        visualization.display_img(template)
 
     scene_color = load_images.load_img_color(scene_path)
     scene = image_processing.convert_grayscale(scene_color)
     scene = image_processing.equalize_histogram(scene)
-    scene = image_processing.resize_img(scene, 2)
-    scene_color = image_processing.resize_img(scene_color, 2)
     scene = image_processing.sharpen_img(scene)
 
     kp_t, des_t = feature_detection.detect_features_SIFT(template)
@@ -236,7 +230,7 @@ def prove():
     visualization_scene = scene_color.copy()
     for i in good_matches:
         print('Len good_matches[{}][1] = {}'.format(i, len(good_matches[i][1])))
-        if len(good_matches[i][1]) >= 4:
+        if len(good_matches[i][1]) >= 6:
             bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
                                                                                                    kp_t, kp_s, template)
 
@@ -258,20 +252,24 @@ def prove():
             print('Rotation mean {} = {}'.format(i, rotation_factor))
 
             # computo i vettori congiungenti il centro del template ai suoi vertici (ordine importante per polylines)
-            box_vertexes = [(0, 0), (template.shape[0] - 1, 0), (template.shape[0] - 1, template.shape[1] - 1), (0, template.shape[1] - 1)]
+            box_vertexes = [(0, 0), (template.shape[1], 0), (template.shape[1], template.shape[0]), (0, template.shape[0])]
             scene_vertexes = []
             vectors = []
             int_barycenter = np.int32(barycenter)
             for j in range(4):
-                vectors.append(np.subtract(int_barycenter, box_vertexes[j]))
+                vectors.append(np.subtract(box_vertexes[j], int_barycenter))
 
             # print e display per controllare come mai non va icsdi
             print('Box vertexes {} = {}'.format(i, box_vertexes))
             print('Box vectors {} = {}'.format(i, vectors))
             template_copy = template.copy()
             for j in range(4):
-                cv2.circle(template_copy, box_vertexes[j], 2, (0, 255, 0))
-                cv2.arrowedLine(template_copy, (int(round(vectors[j][0])), int(round(vectors[j][1]))), box_vertexes[j], (0, 255, 0))
+                cv2.circle(template_copy, box_vertexes[j], 20, (0, 255, 0), -1)
+                cv2.circle(template_copy, (int(barycenter[0]), int(barycenter[1])), 20, (0, 255, 0), -1)
+                cv2.arrowedLine(template_copy,
+                                (int(barycenter[0]), int(barycenter[1])),
+                                (int(barycenter[0] + vectors[j][0]), int(barycenter[1] + vectors[j][1])), (0, 255, 0))
+
             visualization.display_img(template_copy, title='Template_vertexes_vectors')
 
             # scalo e ruoto i vettori secondo le scale e rotation prima trovate
@@ -280,6 +278,11 @@ def prove():
                 vectors[j] = np.reshape(vectors[j], (2, 1))
                 vectors[j] = rotate(vectors[j], math.radians(rotation_factor))
                 vectors[j] = vectors[j].reshape(2)
+
+                cv2.arrowedLine(template_copy,
+                                (int(barycenter[0]), int(barycenter[1])),
+                                (int(barycenter[0] + vectors[j][0]), int(barycenter[1] + vectors[j][1])), (0, 255, 0))
+
                 # computo i vertici risultanti nella scena
                 scene_vertex_x = int(round(good_matches[i][0][0] + vectors[j][0]))
                 scene_vertex_y = int(round(good_matches[i][0][1] + vectors[j][1]))
@@ -289,8 +292,10 @@ def prove():
             print('Scene vertexes match {} = {}'.format(i, scene_vertexes))
             scene_copy = scene.copy()
             for j in range(4):
-                cv2.circle(scene_copy, scene_vertexes[j], 2, (0, 255, 0), -1)
-                cv2.arrowedLine(scene_copy, scene_vertexes[j], (int(round(vectors[j][0])), int(round(vectors[j][1]))), (0, 255, 0))
+                cv2.circle(scene_copy, (int(good_matches[i][0][0]), int(good_matches[i][0][1])), 10, (0, 255, 0), -1)
+                cv2.circle(scene_copy, scene_vertexes[j], 10, (0, 255, 0), -1)
+                cv2.arrowedLine(scene_copy, scene_vertexes[j], (int(round(scene_vertexes[j][0]-vectors[j][0])),
+                                                                int(round(scene_vertexes[j][1]-vectors[j][1]))), (0, 255, 0))
             visualization.display_img(scene_copy, title='Scene_vertexes_vectors')
 
             visualization_scene = visualization.draw_polygons(visualization_scene, np.int32([scene_vertexes]))
