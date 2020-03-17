@@ -175,8 +175,8 @@ def find_centers(barycenter_accumulator):
 
 
 def prove():
-    template_path = '../images/object_detection_project/models/13.jpg'
-    scene_path = '../images/object_detection_project/scenes/h1.jpg'
+    template_path = '../images/object_detection_project/models/0.jpg'
+    scene_path = '../images/object_detection_project/scenes/m1.png'
 
     template_color = load_images.load_img_color(template_path)
     template = image_processing.convert_grayscale(template_color)
