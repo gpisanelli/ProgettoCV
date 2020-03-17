@@ -1,20 +1,27 @@
 import time
 
+import cv2
+
 import feature_detection
 import feature_matching
 import image_processing
 import load_images
 import object_validation
+import parallel_hough
 import visualization
 
 # Image loading
 scene_names = [
-    'e1.png','e2.png','e3.png','e4.png','e5.png'
+    #'e1.png','e2.png','e3.png','e4.png','e5.png'
     #'m1.png','m2.png','m3.png','m4.png','m5.png'
-    #'h1.jpg','h2.jpg','h3.jpg','h4.jpg','h5.jpg'
+    'h1.jpg','h2.jpg','h3.jpg','h4.jpg','h5.jpg'
 ]
 
-box_names = ['0.jpg','1.jpg','11.jpg','19.jpg','24.jpg','25.jpg','26.jpg']
+box_names = ['0.jpg','1.jpg','2.jpg','3.jpg','4.jpg','5.jpg','6.jpg','7.jpg','8.jpg','9.jpg','10.jpg','11.jpg','12.jpg',
+            '13.jpg','14.jpg','15.jpg','16.jpg','17.jpg','18.jpg','19.jpg','20.jpg','21.jpg','22.jpg','23.jpg','24.jpg',
+             '25.jpg','26.jpg',
+    #,'1.jpg','11.jpg','19.jpg','24.jpg','25.jpg','26.jpg'
+]
 
 dict_box_features = {}
 
@@ -36,8 +43,6 @@ def preprocess_box(b):
     pr_box = b.copy()
     pr_box = image_processing.convert_grayscale(pr_box)
     pr_box = image_processing.equalize_histogram(pr_box)
-    if pr_box.shape[0] >= 300:
-        pr_box = image_processing.blur_image(pr_box)
 
     return pr_box
 
@@ -100,4 +105,27 @@ def main():
         visualization.display_img(visualization_scene, 800, 'Result (press Esc to continue)')
 
 
-main()
+
+def main_parallel():
+    precompute_box_features()
+
+    for scene_name in scene_names:
+        scene_path = load_images.get_path_for_scene(scene_name)
+        scene = load_images.load_img_color(scene_path)
+        scene = image_processing.resize_img(scene, 2)
+
+        visualization_scene = scene.copy()
+
+        sub_scenes = parallel_hough.split_shelves(scene)
+
+        results = parallel_hough.hough_sub_images(sub_scenes, dict_box_features)
+        for row in results:
+            for name in row:
+                for bounds in row[name]:
+                    visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
+                    visualization_scene = visualization.draw_names(visualization_scene, bounds, name)
+
+        visualization.display_img(visualization_scene)
+
+
+main_parallel()

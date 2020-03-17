@@ -174,6 +174,38 @@ def find_centers(barycenter_accumulator):
     return centers
 
 
+def compute_hough(template, kp_t, des_t, scene, kp_s, des_s, color_template, color_scene):
+    matches = feature_matching.find_matches(des_t, des_s)
+    result_bounds = []
+    #matches_scene = cv2.drawMatches(template, kp_t, scene, kp_s, matches, None, (0,0,255))
+    #[visualization.display_img(matches_scene)
+
+    barycenter = compute_barycenter(kp_t)
+    barycenter_accumulator, matches_barycenters = \
+        compute_barycenter_accumulator(matches, barycenter, kp_t, kp_s, scene.shape[1], scene.shape[0])
+
+    if cv2.countNonZero(barycenter_accumulator) > 0:
+        barycenter_accumulator = remove_noise(barycenter_accumulator)
+        centers = find_centers(barycenter_accumulator)
+
+        good_matches = filter_matches(matches_barycenters, centers)
+
+        for i in good_matches:
+            if len(good_matches[i][1]) >= 6:
+                bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
+                                                                                                       kp_t, kp_s, template)
+
+                # Object validation
+                polygon_convex = object_validation.is_convex_polygon(bounds)
+                if polygon_convex:
+                    color_validation = object_validation.validate_color(color_template, color_scene, used_src_pts,
+                                                                            used_dst_pts, bounds, M)
+                    if color_validation:
+                        result_bounds.append(bounds)
+
+    return result_bounds
+
+
 def prove():
     template_path = '../images/object_detection_project/models/0.jpg'
     scene_path = '../images/object_detection_project/scenes/m1.png'
@@ -225,8 +257,6 @@ def prove():
             pt = kp_s[m.trainIdx].pt
             cv2.circle(result, (int(pt[0]), int(pt[1])), 2, colors[i], -1)
 
-    visualization.display_img(result)
-
     visualization_scene = scene_color.copy()
     for i in good_matches:
         print('Len good_matches[{}][1] = {}'.format(i, len(good_matches[i][1])))
@@ -270,8 +300,6 @@ def prove():
                                 (int(barycenter[0]), int(barycenter[1])),
                                 (int(barycenter[0] + vectors[j][0]), int(barycenter[1] + vectors[j][1])), (0, 255, 0))
 
-            visualization.display_img(template_copy, title='Template_vertexes_vectors')
-
             # scalo e ruoto i vettori secondo le scale e rotation prima trovate
             for j in range(4):
                 vectors[j] = np.multiply(vectors[j], scale_factor)
@@ -296,14 +324,13 @@ def prove():
                 cv2.circle(scene_copy, scene_vertexes[j], 10, (0, 255, 0), -1)
                 cv2.arrowedLine(scene_copy, scene_vertexes[j], (int(round(scene_vertexes[j][0]-vectors[j][0])),
                                                                 int(round(scene_vertexes[j][1]-vectors[j][1]))), (0, 255, 0))
-            visualization.display_img(scene_copy, title='Scene_vertexes_vectors')
 
             visualization_scene = visualization.draw_polygons(visualization_scene, np.int32([scene_vertexes]))
 
-    visualization.display_img(visualization_scene)
+    return visualization_scene
 
 
-prove()
+#prove()
 
 '''
 Qua sotto roba clustering prolly useless

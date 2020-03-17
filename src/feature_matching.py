@@ -28,6 +28,7 @@ def find_object(matches, kp1, kp2, box_img):
     src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
     dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
 
+    # Aggiungere controllo eccezioni
     M, matches_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
     h = box_img.shape[0]
