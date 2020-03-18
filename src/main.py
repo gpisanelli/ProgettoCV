@@ -32,7 +32,7 @@ box_dict = {
     '-h': ['0.jpg', '1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg', '6.jpg',
            '7.jpg', '8.jpg', '9.jpg', '10.jpg', '11.jpg', '12.jpg', '13.jpg',
            '14.jpg', '15.jpg', '16.jpg', '17.jpg', '18.jpg', '19.jpg', '20.jpg',
-           '21.jpg', '22.jpg', '23.jpg', '24.jpg', '25.jpg', '26.jpg']
+           '21.jpg', '22.jpg', '23.jpg']
 }
 box_names = ['0.jpg', '1.jpg', '11.jpg', '19.jpg', '24.jpg', '25.jpg', '26.jpg']
 
@@ -200,8 +200,6 @@ def main():
                         for m in good_matches[i][1]:
                             pt = kp_s[m.trainIdx].pt
                             cv2.circle(result, (int(pt[0]), int(pt[1])), 2, colors[i], -1)
-
-                    visualization.display_img(result)
 
                     for i in good_matches:
                         print('Len good_matches[{}][1] = {}'.format(i, len(good_matches[i][1])))
