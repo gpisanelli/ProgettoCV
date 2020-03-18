@@ -191,17 +191,17 @@ def compute_hough(template, kp_t, des_t, scene, kp_s, des_s, color_template, col
         good_matches = filter_matches(matches_barycenters, centers)
 
         for i in good_matches:
-            if len(good_matches[i][1]) >= 6:
-                bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
+            if len(good_matches[i][1]) >= 10:
+                success, bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
                                                                                                        kp_t, kp_s, template)
-
-                # Object validation
-                polygon_convex = object_validation.is_convex_polygon(bounds)
-                if polygon_convex:
-                    color_validation = object_validation.validate_color(color_template, color_scene, used_src_pts,
-                                                                            used_dst_pts, bounds, M)
-                    if color_validation:
-                        result_bounds.append(bounds)
+                if success:
+                    # Object validation
+                    polygon_convex = object_validation.is_convex_polygon(bounds)
+                    if polygon_convex:
+                        color_validation = object_validation.validate_color(color_template, color_scene, used_src_pts,
+                                                                                used_dst_pts, bounds, M)
+                        if color_validation:
+                            result_bounds.append(bounds)
 
     return result_bounds
 
@@ -261,13 +261,14 @@ def prove():
     for i in good_matches:
         print('Len good_matches[{}][1] = {}'.format(i, len(good_matches[i][1])))
         if len(good_matches[i][1]) >= 6:
-            bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
+            success, bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
                                                                                                    kp_t, kp_s, template)
+            if success:
+                # Object validation
+                polygon_convex = object_validation.is_convex_polygon(bounds)
+                if polygon_convex:
+                    visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
 
-            # Object validation
-            polygon_convex = object_validation.is_convex_polygon(bounds)
-            if polygon_convex:
-                visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
         elif len(good_matches[i][1]) > 0:
             # disegno rettangolo approssimativo perché not enough points per la homography
             # cerco la miglior scale e rotation facendo la media tra quelle disponibili

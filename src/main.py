@@ -111,21 +111,24 @@ def main():
                 searching = True
                 while len(matches) > 10 and searching:
                     # Object detection
-                    bounds, homography, used_box_points, used_scene_points, not_used_matches = \
+                    success, bounds, homography, used_box_points, used_scene_points, not_used_matches = \
                         feature_matching.find_object(matches, kp_box, kp_scene, proc_box)
 
-                    # Object validation
-                    polygon_convex = object_validation.is_convex_polygon(bounds)
+                    if success:
+                        # Object validation
+                        polygon_convex = object_validation.is_convex_polygon(bounds)
 
-                    if polygon_convex:
-                        color_validation = object_validation.validate_color(test_box, test_scene, used_box_points,
-                                                                            used_scene_points, bounds, homography)
-                        if color_validation:
+                        if polygon_convex:
+                            color_validation = object_validation.validate_color(test_box, test_scene, used_box_points,
+                                                                                used_scene_points, bounds, homography)
+                            if color_validation:
+                                searching = False
+                                visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
+                                visualization_scene = visualization.draw_names(visualization_scene, bounds, box_name)
+
+                            matches = not_used_matches
+                        else:
                             searching = False
-                            visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
-                            visualization_scene = visualization.draw_names(visualization_scene, bounds, box_name)
-
-                        matches = not_used_matches
                     else:
                         searching = False
 
@@ -298,7 +301,6 @@ def main():
             visualization.display_img(visualization_scene)
 
     elif arg == '-h':
-
         for scene in scenes:
             scene = image_processing.resize_img(scene, 2)
 

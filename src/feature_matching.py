@@ -30,25 +30,28 @@ def find_object(matches, kp1, kp2, box_img):
 
     # Aggiungere controllo eccezioni
     M, matches_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+    if M is not None:
+        h = box_img.shape[0]
+        w = box_img.shape[1]
+        # Find bounds of the object in the scene
+        pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+        dst = cv2.perspectiveTransform(pts, M)
 
-    h = box_img.shape[0]
-    w = box_img.shape[1]
-    # Find bounds of the object in the scene
-    pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
-    dst = cv2.perspectiveTransform(pts, M)
+        bounds = np.int32(dst)
+        bounds = bounds.reshape(bounds.shape[0], 2)
 
-    bounds = np.int32(dst)
-    bounds = bounds.reshape(bounds.shape[0], 2)
+        matches_arr = np.asarray(matches).reshape((len(matches), 1))
+        used_matches = matches_arr[matches_mask > 0]
+        used_src_pts = np.float32([kp1[m.queryIdx].pt for m in used_matches])
+        used_dst_pts = np.float32([kp2[m.trainIdx].pt for m in used_matches])
 
-    matches_arr = np.asarray(matches).reshape((len(matches), 1))
-    used_matches = matches_arr[matches_mask > 0]
-    used_src_pts = np.float32([kp1[m.queryIdx].pt for m in used_matches])
-    used_dst_pts = np.float32([kp2[m.trainIdx].pt for m in used_matches])
+        not_used_matches = matches_arr[matches_mask == 0]
+        not_used_matches = not_used_matches.tolist()
 
-    not_used_matches = matches_arr[matches_mask == 0]
-    not_used_matches = not_used_matches.tolist()
+        return True, bounds, M, used_src_pts, used_dst_pts, not_used_matches
+    else:
+        return False, None, None, None, None, None
 
-    return bounds, M, used_src_pts, used_dst_pts, not_used_matches
 
 
 def find_object_similarity_functions(img, template):
