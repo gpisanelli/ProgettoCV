@@ -4,15 +4,12 @@ import multiprocessing
 import time
 from contextlib import contextmanager
 from functools import partial
-from multiprocessing.pool import Pool
 
 import cv2
 import numpy as np
 
 import feature_detection
-import feature_matching
 import image_processing
-import object_validation
 import prove
 import visualization
 

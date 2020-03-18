@@ -58,10 +58,10 @@ def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homog
     t = box_masked_area[box_masked_area > 0]
     area_ratio = t.shape[0] / (masked_box.shape[0] * masked_box.shape[1])
 
-    #if area_ratio < 0.20:
-    #    return False
+    if area_ratio < 0.20:
+        return False
 
-    return compare_hue(box_val, scene_val, homography, match_bounds)
+    return compare_hue(masked_box, masked_scene, homography, match_bounds)
 
 
 # Compares the colors of the template with the instance found in the scene, to test the compatibility of the match. This
