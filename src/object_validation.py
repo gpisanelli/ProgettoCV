@@ -15,6 +15,36 @@ def is_convex_polygon(bounds):
     return cv2.isContourConvex(bounds)
 
 
+def check_rectangularity(bounds):
+    x, y, w, h = cv2.boundingRect(bounds)
+    bounds_area = cv2.contourArea(bounds)
+    rect_area = w * h
+
+    return bounds_area / rect_area > 0.9
+
+
+def is_contained(bounds_outer, bounds_inner):
+    x_o, y_o, w_o, h_o = cv2.boundingRect(bounds_outer)
+    x_i, y_i, w_i, h_i = cv2.boundingRect(bounds_inner)
+    ul = (x_o, y_o) <= (x_i, y_i)
+    bl = x_o <= x_i and y_o + h_o >= y_i + h_i
+    br = (x_o + w_o, y_o + h_o) >= (x_i + w_i, y_i + h_i)
+    ur = x_o + w_o >= x_i + w_i and y_o <= y_i
+
+    return bl and ul and ur and br
+
+
+def compare_detections(intersected, intersecting):
+    contained2in1 = is_contained(intersected[0], intersecting[0])
+    contained1in2 = is_contained(intersecting[0], intersected[0])
+    if contained2in1:  # intersecting e' completamente interno o uguale a intersected
+        return 1
+    elif contained1in2:  # intersected e' completamente interno o uguale a intersecting
+        return 0
+    else:   # c'è intersezione ma i box non sono l'uno dentro l'altro
+        return -1
+
+
 # Draws a black rectangle around each matching point found in the two images, obtaining a box and a scene in which only
 # the regions of the image that contain no important features are left. Because of how the feature detection algorithm
 # works, features belong to areas with edges and intensity variations. In the case of grocery products, regions with
