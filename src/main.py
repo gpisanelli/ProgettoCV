@@ -157,7 +157,7 @@ def main():
 
             matches_mask = np.zeros(scene.shape, dtype=np.uint8)
 
-            color = 10
+            color = 1
             bounds_dict = {}
 
             for box_name in box_dict['-m']:
@@ -234,34 +234,34 @@ def main():
                                             cv2.circle(new_barycenter_mask, (cx, cy), w // 4, color, -1)
                                             new_bar_copy = new_barycenter_mask.copy()
                                             new_bar_copy[new_bar_copy > 0] = 255
-                                            print('Color barycenter {} = {}'.format(len(bounds_dict), color))
+                                            # print('Color barycenter {} = {}'.format(len(bounds_dict), color))
                                             intersection = cv2.bitwise_and(new_bar_copy, matches_mask)
-                                            visualization.display_img(new_barycenter_mask)
-                                            visualization.display_img(intersection, title='Instersezione')
+                                            # visualization.display_img(new_barycenter_mask)
                                             if cv2.countNonZero(intersection) > 0:
-                                                visualization.display_img(intersection, title='Intersection')
+                                                # visualization.display_img(intersection, title='Intersection')
                                                 gray_index = intersection[intersection > 0][0]
-                                                print('Color intersection ', gray_index)
-
+                                                # print('Color intersection ', gray_index)
                                                 bar_intersected = bounds_dict[gray_index]
                                                 bar_intersecting = (bounds, test_box, box_name)
                                                 result = object_validation.compare_detections(bar_intersected, bar_intersecting)
-                                                print('Result = ', result)
-                                                if result == 0:   # devo sostituire nel dict l'intersecato con l'intersecante
+                                                if result == 0:   # devo sostituire nel dict e nella mask l'intersecato con l'intersecante
+                                                    # per cancellare dalla mask l'intersecato disegno sul suo baricentro un baricentro nero delle stesse dimensioni
+                                                    M_intersected = cv2.moments(bar_intersected[0])
+                                                    cx_intersected = int(M_intersected['m10'] / M_intersected['m00'])
+                                                    cy_intersected = int(M_intersected['m01'] / M_intersected['m00'])
+                                                    _, _, w_intersected, _ = cv2.boundingRect(bar_intersected[0])
+                                                    cv2.circle(matches_mask, (cx_intersected, cy_intersected), w_intersected // 4, (0, 0, 0), -1)
 
-                                                    # TUDU bisogna cancellare il vecchio baricentro e disegnare quello nuovo
-                                                    # accedere al dict per ottenere i bounds vecchi, calcolare il baricentro e
-                                                    # disegnare un cerchio nero, infine disegnare il cerchio nuovo (bianco)
-
+                                                    cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
                                                     bounds_dict[gray_index] = bar_intersecting
-                                                if result == -1:   # c'è intersezione ma i box non sono uno dentro l'altro, aggiungo l'intersecante al dict
+                                                if result == -1:   # c'è intersezione ma i box non sono uno dentro l'altro, aggiungo l'intersecante al dict e alla mask
                                                     cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
                                                     bounds_dict[color] = bar_intersecting
-                                                    color += 10
+                                                    color += 1
                                             else:   # niente intersezione, aggiungo al dict
                                                 cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
                                                 bounds_dict[color] = (bounds, test_box, box_name)
-                                                color += 10
+                                                color += 1
                                     else:
                                         print('Box {} failed color validation'.format(box_name))
                                 else:
