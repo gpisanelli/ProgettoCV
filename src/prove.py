@@ -201,7 +201,11 @@ def compute_hough(template, kp_t, des_t, scene, kp_s, des_s, color_template, col
                         color_validation = object_validation.validate_color(color_template, color_scene, used_src_pts,
                                                                                 used_dst_pts, bounds, M)
                         if color_validation:
-                            result_bounds.append(bounds)
+                            x, y, w, h = cv2.boundingRect(bounds)
+
+                            if cv2.contourArea(bounds) / (w*h) >= 0.8:
+                                result_bounds.append(bounds)
+                good_matches[i] = (good_matches[i][0], not_used_matches)
 
     return result_bounds
 

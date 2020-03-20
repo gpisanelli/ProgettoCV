@@ -32,7 +32,7 @@ box_dict = {
     '-h': ['0.jpg', '1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg', '6.jpg',
            '7.jpg', '8.jpg', '9.jpg', '10.jpg', '11.jpg', '12.jpg', '13.jpg',
            '14.jpg', '15.jpg', '16.jpg', '17.jpg', '18.jpg', '19.jpg', '20.jpg',
-           '21.jpg', '22.jpg', '23.jpg']
+           '21.jpg', '22.jpg', '23.jpg', '24.jpg', '25.jpg', '26.jpg']
 }
 box_names = ['0.jpg', '1.jpg', '11.jpg', '19.jpg', '24.jpg', '25.jpg', '26.jpg']
 
@@ -122,9 +122,13 @@ def main():
                             color_validation = object_validation.validate_color(test_box, test_scene, used_box_points,
                                                                                 used_scene_points, bounds, homography)
                             if color_validation:
-                                searching = False
-                                visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
-                                visualization_scene = visualization.draw_names(visualization_scene, bounds, box_name)
+                                x, y, w, h = cv2.boundingRect(bounds)
+
+                                if cv2.contourArea(bounds) / (w*h) >= 0.9:
+                                    searching = False
+                                    visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
+                                    visualization_scene = visualization.draw_names(visualization_scene, bounds,
+                                                                                   box_name)
 
                             matches = not_used_matches
                         else:
@@ -150,6 +154,11 @@ def main():
             # s = time.time()
             kp_s, des_s = feature_detection.detect_features_SIFT(scene)
             # print('\nTIME DETECTION: ', time.time() - s, '\n')
+
+            matches_mask = np.zeros(scene.shape, dtype=np.uint8)
+
+            color = 0
+            matches_dict = {}
 
             for box_name in box_dict['-m']:
                 # Box features retrieval
@@ -215,13 +224,32 @@ def main():
                                     color_validation = object_validation.validate_color(test_box, test_scene, used_src_pts,
                                                                                         used_dst_pts, bounds, homography)
                                     if color_validation:
-                                        visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
-                                        visualization_scene = visualization.draw_names(visualization_scene, bounds, box_name)
+                                        x, y, w, h = cv2.boundingRect(bounds)
+
+                                        if cv2.contourArea(bounds) / (w * h) >= 0.9:
+                                            visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
+                                            visualization_scene = visualization.draw_names(visualization_scene, bounds, box_name)
+
+                                            M = cv2.moments(bounds)
+                                            cx = int(M['m10']/M['m00'])
+                                            cy = int(M['m01']/M['m00'])
+                                            _, _, w, _ = cv2.boundingRect(bounds)
+                                            new_barycenter_mask = np.zeros(matches_mask.shape, dtype=np.uint8)
+                                            cv2.circle(new_barycenter_mask, (cx, cy), w // 4, color + 10, -1)
+                                            intersection = cv2.bitwise_and(new_barycenter_mask, matches_mask)
+                                            visualization.display_img(new_barycenter_mask)
+                                            if cv2.countNonZero(intersection) > 0:
+                                                visualization.display_img(intersection)
+                                                gray_index = matches_mask[cv2.findNonZero(intersection)[0][0][0], cv2.findNonZero(intersection)[0][0][1]]
+
+                                            cv2.circle(matches_mask, (cx, cy), w // 4, color + 10, -1)
+
+                                            matches_dict[color] = (bounds, test_box)
                                     else:
                                         print('Box {} failed color validation'.format(box_name))
                                 else:
                                     print('Box {} failed convex validation'.format(box_name))
-
+                        color += 10
                         '''
                         caso in cui non ho abbastanza keypoint per la homography, non dovrebbe servire e anyway non funge molto bene
     
