@@ -16,7 +16,7 @@ import parallel_hough
 scene_dict = {
     '-e': ['e1.png', 'e2.png', 'e3.png', 'e4.png', 'e5.png'],
     '-m': ['m1.png', 'm2.png', 'm3.png', 'm4.png', 'm5.png'],
-    '-h': ['h1.jpg', 'h2.jpg', 'h3.jpg', 'h4.jpg', 'h5.jpg']
+    '-h': ['h1.jpg']
 }
 
 # Image loading
@@ -56,8 +56,6 @@ def preprocess_box(b):
     pr_box = b.copy()
     pr_box = image_processing.convert_grayscale(pr_box)
     pr_box = image_processing.equalize_histogram(pr_box)
-    if pr_box.shape[0] >= 300:
-        pr_box = image_processing.blur_image(pr_box)
 
     return pr_box
 

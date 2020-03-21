@@ -10,6 +10,7 @@ import numpy as np
 
 import feature_detection
 import image_processing
+import object_validation
 import prove
 import visualization
 
@@ -80,7 +81,7 @@ def split_shelves(scene):
             sub_images.append((scene[mean_lines[i-1]:mean_lines[i], 0:scene.shape[1]], mean_lines[i-1]))
 
     if scene.shape[0] - mean_lines[len(mean_lines)-1] >= scene.shape[0] // 10:
-        sub_images.append((scene[mean_lines[len(mean_lines)-1]:scene.shape[0], 0:scene.shape[1]], mean_lines[len(mean_lines)-2]))
+        sub_images.append((scene[mean_lines[len(mean_lines)-1]:scene.shape[0], 0:scene.shape[1]], mean_lines[len(mean_lines)-1]))
 
     return sub_images
 
@@ -109,6 +110,11 @@ def compute_sub_image(dict_box_features, sub_image):
     kp_scene, des_scene = feature_detection.detect_features_SIFT(proc_scene)
     #print('\nTIME DETECTION: ', time.time() - s, '\n')
     found_bounds = {}
+
+    matches_mask = np.zeros(proc_scene.shape, dtype=np.uint8)
+    color = 0
+    bounds_dict = {}
+
     for box_name in dict_box_features:
         found_bounds[box_name] = []
 
@@ -116,11 +122,57 @@ def compute_sub_image(dict_box_features, sub_image):
         box, proc_box, kp_box, des_box = dict_box_features[box_name]
 
         bounds = prove.compute_hough(box, kp_box, des_box, test_scene, kp_scene, des_scene, box, sub_scene)
+
         for b in bounds:
-            shifted_bound = b.copy()
-            for i in range(len(b)):
-                shifted_bound[i] = [b[i][0], b[i][1]+y]
-            found_bounds[box_name].append(shifted_bound)
+
+            if object_validation.check_rectangularity(b):
+                M = cv2.moments(b)
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+                _, _, w, _ = cv2.boundingRect(b)
+                new_barycenter_mask = np.zeros(matches_mask.shape, dtype=np.uint8)
+                cv2.circle(new_barycenter_mask, (cx, cy), w // 4, color, -1)
+                new_bar_copy = new_barycenter_mask.copy()
+                new_bar_copy[new_bar_copy > 0] = 255
+                intersection = cv2.bitwise_and(new_bar_copy, matches_mask)
+
+                if cv2.countNonZero(intersection) > 0:
+                    print('\n\nIntersection\n\n')
+                    gray_index = intersection[intersection > 0][0]
+                    bar_intersected = bounds_dict[gray_index]
+                    bar_intersecting = (b, box, box_name)
+                    result = object_validation.compare_detections(bar_intersected, bar_intersecting)
+                    if result == 0:  # devo sostituire nel dict e nella mask l'intersecato con l'intersecante
+                        # per cancellare dalla mask l'intersecato disegno sul suo baricentro un baricentro nero delle stesse dimensioni
+                        M_intersected = cv2.moments(bar_intersected[0])
+                        cx_intersected = int(M_intersected['m10'] / M_intersected['m00'])
+                        cy_intersected = int(M_intersected['m01'] / M_intersected['m00'])
+                        _, _, w_intersected, _ = cv2.boundingRect(bar_intersected[0])
+                        cv2.circle(matches_mask, (cx_intersected, cy_intersected), w_intersected // 4, (0, 0, 0), -1)
+
+                        cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
+                        bounds_dict[gray_index] = bar_intersecting
+                    if result == -1:  # c'è intersezione ma i box non sono uno dentro l'altro, aggiungo l'intersecante al dict e alla mask
+                        cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
+                        bounds_dict[color] = bar_intersecting
+                        color += 1
+                else:  # niente intersezione, aggiungo al dict
+                    cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
+                    bounds_dict[color] = (b, box, box_name)
+                    color += 1
+
+    visualization_scene = sub_scene.copy()
+    for key in bounds_dict:
+        bound, box, box_name = bounds_dict[key]
+        shifted_bound = bound.copy()
+        for i in range(len(bound)):
+            shifted_bound[i] = [bound[i][0], bound[i][1] + y]
+        found_bounds[box_name].append(shifted_bound)
+
+        visualization_scene = visualization.draw_polygons(visualization_scene, [bounds_dict[key][0]])
+        visualization_scene = visualization.draw_names(visualization_scene, bounds_dict[key][0], bounds_dict[key][2])
+
+    visualization.display_img(visualization_scene)
 
     return found_bounds
 
@@ -134,7 +186,7 @@ def poolcontext(*args, **kwargs):
 
 def hough_sub_images(sub_images, dict_template_features):
     copyreg.pickle(cv2.KeyPoint().__class__, _pickle_keypoints)
-    with poolcontext(processes=len(sub_images)) as pool:
-        results = pool.map(partial(compute_sub_image, dict_template_features), sub_images)
+    with poolcontext(processes=1) as pool:
+        results = pool.map(partial(compute_sub_image, dict_template_features), sub_images[3:4])
 
     return results
