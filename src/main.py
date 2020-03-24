@@ -16,7 +16,7 @@ import parallel_hough
 scene_dict = {
     '-e': ['e1.png', 'e2.png', 'e3.png', 'e4.png', 'e5.png'],
     '-m': ['m1.png', 'm2.png', 'm3.png', 'm4.png', 'm5.png'],
-    '-h': ['h1.jpg']
+    '-h': ['h1.jpg', 'h2.jpg', 'h3.jpg', 'h4.jpg', 'h5.jpg']
 }
 
 # Image loading
@@ -242,6 +242,7 @@ def main():
                                                 bar_intersected = bounds_dict[gray_index]
                                                 bar_intersecting = (bounds, test_box, box_name)
                                                 result = object_validation.compare_detections(bar_intersected, bar_intersecting)
+                                                # if result == 1 allora l'intersecato è interno all'intersecante, non faccio nulla
                                                 if result == 0:   # devo sostituire nel dict e nella mask l'intersecato con l'intersecante
                                                     # per cancellare dalla mask l'intersecato disegno sul suo baricentro un baricentro nero delle stesse dimensioni
                                                     M_intersected = cv2.moments(bar_intersected[0])
@@ -256,7 +257,7 @@ def main():
                                                     cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
                                                     bounds_dict[color] = bar_intersecting
                                                     color += 1
-                                            else:   # niente intersezione, aggiungo al dict
+                                            else:   # niente intersezione, aggiungo al dict e alla mask
                                                 cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
                                                 bounds_dict[color] = (bounds, test_box, box_name)
                                                 color += 1
@@ -264,84 +265,6 @@ def main():
                                         print('Box {} failed color validation'.format(box_name))
                                 else:
                                     print('Box {} failed convex validation'.format(box_name))
-                        '''
-                        caso in cui non ho abbastanza keypoint per la homography, non dovrebbe servire e anyway non funge molto bene
-    
-                        elif len(good_matches[i][1]) > 0:
-                            # disegno rettangolo approssimativo perché not enough points per la homography
-                            # cerco la miglior scale e rotation facendo la media tra quelle disponibili
-                            scales = []
-                            rotations = []
-                            for j in range(len(good_matches[i][1])):
-                                scales.append(kp_s[good_matches[i][1][j].trainIdx].size / kp_t[good_matches[i][1][j].queryIdx].size)
-                                rotations.append(kp_s[good_matches[i][1][j].trainIdx].angle - kp_t[good_matches[i][1][j].queryIdx].angle)
-                            scale_factor = np.mean(scales)
-                            rotation_factor = np.mean(rotations)
-                            print('Scale mean {} = {}'.format(i, scale_factor))
-                            print('Rotation mean {} = {}'.format(i, rotation_factor))
-    
-                            # computo i vettori congiungenti il centro del template ai suoi vertici (ordine importante per polylines)
-                            box_vertexes = [(0, 0), (proc_box.shape[1], 0), (proc_box.shape[1], proc_box.shape[0]), (0, proc_box.shape[0])]
-                            scene_vertexes = []
-                            vectors = []
-                            int_barycenter = np.int32(barycenter)
-                            for j in range(4):
-                                vectors.append(np.subtract(box_vertexes[j], int_barycenter))
-    
-                            # print('Box vertexes {} = {}'.format(i, box_vertexes))
-                            # print('Box vectors {} = {}'.format(i, vectors))
-                            template_copy = proc_box.copy()
-                            for j in range(4):
-                                cv2.circle(template_copy, box_vertexes[j], 20, (0, 255, 0), -1)
-                                cv2.circle(template_copy, (int(barycenter[0]), int(barycenter[1])), 20, (0, 255, 0), -1)
-                                cv2.arrowedLine(template_copy,
-                                                (int(barycenter[0]), int(barycenter[1])),
-                                                (int(barycenter[0] + vectors[j][0]), int(barycenter[1] + vectors[j][1])), (0, 255, 0))
-    
-                            visualization.display_img(template_copy, title='Template_vertexes_vectors')
-    
-                            # scalo e ruoto i vettori secondo le scale e rotation prima trovate
-                            for j in range(4):
-                                vectors[j] = np.multiply(vectors[j], scale_factor)
-                                vectors[j] = np.reshape(vectors[j], (2, 1))
-                                vectors[j] = rotate(vectors[j], math.radians(rotation_factor))
-                                vectors[j] = vectors[j].reshape(2)
-    
-                                cv2.arrowedLine(template_copy,
-                                                (int(barycenter[0]), int(barycenter[1])),
-                                                (int(barycenter[0] + vectors[j][0]), int(barycenter[1] + vectors[j][1])), (0, 255, 0))
-    
-                                # computo i vertici risultanti nella scena
-                                scene_vertex_x = int(round(good_matches[i][0][0] + vectors[j][0]))
-                                scene_vertex_y = int(round(good_matches[i][0][1] + vectors[j][1]))
-                                scene_vertexes.append((scene_vertex_x, scene_vertex_y))
-    
-                            # print('Scene vertexes match {} = {}'.format(i, scene_vertexes))
-                            scene_copy = scene.copy()
-                            for j in range(4):
-                                cv2.circle(scene_copy, (int(good_matches[i][0][0]), int(good_matches[i][0][1])), 10, (0, 255, 0), -1)
-                                cv2.circle(scene_copy, scene_vertexes[j], 10, (0, 255, 0), -1)
-                                cv2.arrowedLine(scene_copy, scene_vertexes[j], (int(round(scene_vertexes[j][0]-vectors[j][0])),
-                                                                                int(round(scene_vertexes[j][1]-vectors[j][1]))), (0, 255, 0))
-                            visualization.display_img(scene_copy, title='Scene_vertexes_vectors')
-    
-                            # Object validation
-                            polygon_convex = object_validation.is_convex_polygon(scene_vertexes)
-                            if polygon_convex:
-                                # homography sarebbe da computare tra gli 8 punti vertici del box e della scena, gli used_points sono quei vertici
-                                color_validation = object_validation.validate_color(test_box, test_scene, used_src_points,
-                                                                                used_dst_points, scene_vertexes, homography)
-                                if color_validation:
-                                    visualization_scene = visualization.draw_polygons(visualization_scene, [scene_vertexes])
-                                    visualization_scene = visualization.draw_names(visualization_scene, scene_vertexes, box_name)
-                                else:
-                                    print('Box {} failed color validation'.format(box_name))
-                            else:
-                                print('Box {} failed convex validation'.format(box_name))
-    
-                            visualization_scene = visualization.draw_polygons(visualization_scene, np.int32([scene_vertexes]))
-                        '''
-
             for key in bounds_dict:
                 visualization_scene = visualization.draw_polygons(visualization_scene, [ bounds_dict[key][0] ])
                 visualization_scene = visualization.draw_names(visualization_scene, bounds_dict[key][0], bounds_dict[key][2])

@@ -72,7 +72,7 @@ def split_shelves(scene):
     for row in mean_lines:
         cv2.line(mean_lines_img, (0, row), (mean_lines_img.shape[1], row), (255, 0, 0), 1)
 
-    visualization.display_img(mean_lines_img)
+    #visualization.display_img(mean_lines_img)
 
     sub_images = []
     sub_images.append((scene[0:mean_lines[0], 0:scene.shape[1]], 0))
@@ -101,6 +101,15 @@ def _pickle_keypoints(point):
                           point.response, point.octave, point.class_id)
 
 
+def erase_bar(matches_mask, bounds):
+    # per cancellare dalla mask il baricentro disegno sopra un baricentro nero delle stesse dimensioni
+    M_intersected = cv2.moments(bounds)
+    cx_intersected = int(M_intersected['m10'] / M_intersected['m00'])
+    cy_intersected = int(M_intersected['m01'] / M_intersected['m00'])
+    _, _, w_intersected, _ = cv2.boundingRect(bounds)
+    cv2.circle(matches_mask, (cx_intersected, cy_intersected), w_intersected // 4, (0, 0, 0), -1)
+
+
 def compute_sub_image(dict_box_features, sub_image):
     sub_scene, y = sub_image
     proc_scene = preprocess_sub_scene(sub_scene)
@@ -112,7 +121,7 @@ def compute_sub_image(dict_box_features, sub_image):
     found_bounds = {}
 
     matches_mask = np.zeros(proc_scene.shape, dtype=np.uint8)
-    color = 0
+    color = 1
     bounds_dict = {}
 
     for box_name in dict_box_features:
@@ -137,26 +146,39 @@ def compute_sub_image(dict_box_features, sub_image):
                 intersection = cv2.bitwise_and(new_bar_copy, matches_mask)
 
                 if cv2.countNonZero(intersection) > 0:
-                    print('\n\nIntersection\n\n')
+                    #print('\n\nIntersection between the following boxes')
                     gray_index = intersection[intersection > 0][0]
                     bar_intersected = bounds_dict[gray_index]
                     bar_intersecting = (b, box, box_name)
+                    '''
+                    print('Name intersected ', bar_intersected[2])
+                    print('Name intersecting ', bar_intersecting[2])
+                    test = sub_scene.copy()
+                    test = visualization.draw_polygons(test, [bar_intersected[0]])
+                    test = visualization.draw_polygons(test, [bar_intersecting[0]])
+                    visualization.display_img(test)
+                    '''
                     result = object_validation.compare_detections(bar_intersected, bar_intersecting)
+                    #print('Result of compare_detections = ', result)
+                    #if result == 1 allora l'intersecato è interno all'intersecante, non faccio nulla
                     if result == 0:  # devo sostituire nel dict e nella mask l'intersecato con l'intersecante
-                        # per cancellare dalla mask l'intersecato disegno sul suo baricentro un baricentro nero delle stesse dimensioni
-                        M_intersected = cv2.moments(bar_intersected[0])
-                        cx_intersected = int(M_intersected['m10'] / M_intersected['m00'])
-                        cy_intersected = int(M_intersected['m01'] / M_intersected['m00'])
-                        _, _, w_intersected, _ = cv2.boundingRect(bar_intersected[0])
-                        cv2.circle(matches_mask, (cx_intersected, cy_intersected), w_intersected // 4, (0, 0, 0), -1)
-
+                        erase_bar(matches_mask, bar_intersected[0])
                         cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
                         bounds_dict[gray_index] = bar_intersecting
-                    if result == -1:  # c'è intersezione ma i box non sono uno dentro l'altro, aggiungo l'intersecante al dict e alla mask
-                        cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
-                        bounds_dict[color] = bar_intersecting
-                        color += 1
-                else:  # niente intersezione, aggiungo al dict
+                    if result == -1:  # c'è intersezione ma i box non sono completamente uno dentro l'altro, effettuo ulteriore controllo con compare_detections_hard
+                        #print('Calling compare_detections_hard')
+                        result = object_validation.compare_detections_hard(bar_intersected, bar_intersecting, 1.5)
+                        #print('Result of compare_detections_hard = ', result)
+                        # if result == 1 allora c'è troppa sovrapposizione tra i box e l'intersecato è migliore dell'intersecante, non faccio nulla
+                        if result == 0:  # c'è troppa sovrapposizione tra i box e l'intersecante è migliore dell'intersecato, sostituisco
+                            erase_bar(matches_mask, bar_intersected[0])
+                            cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
+                            bounds_dict[gray_index] = bar_intersecting
+                        if result == -1:  # anche secondo compare_detections_hard c'è intersezione ma non sovrapposizione, aggiungo al dict e alla mask
+                            cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
+                            bounds_dict[color] = bar_intersecting
+                            color += 1
+                else:  # niente intersezione, aggiungo al dict e alla mask
                     cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
                     bounds_dict[color] = (b, box, box_name)
                     color += 1
@@ -172,7 +194,8 @@ def compute_sub_image(dict_box_features, sub_image):
         visualization_scene = visualization.draw_polygons(visualization_scene, [bounds_dict[key][0]])
         visualization_scene = visualization.draw_names(visualization_scene, bounds_dict[key][0], bounds_dict[key][2])
 
-    visualization.display_img(visualization_scene)
+    #visualization.display_img(visualization_scene)
+    #cv2.imwrite('/home/ginetto/Desktop/' + str(time.time()) + '.jpg', visualization_scene)
 
     return found_bounds
 
@@ -187,6 +210,6 @@ def poolcontext(*args, **kwargs):
 def hough_sub_images(sub_images, dict_template_features):
     copyreg.pickle(cv2.KeyPoint().__class__, _pickle_keypoints)
     with poolcontext(processes=1) as pool:
-        results = pool.map(partial(compute_sub_image, dict_template_features), sub_images[3:4])
+        results = pool.map(partial(compute_sub_image, dict_template_features), sub_images)
 
     return results

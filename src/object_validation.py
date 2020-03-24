@@ -7,6 +7,7 @@ import feature_matching
 import image_processing
 import visualization
 import matplotlib.pyplot as plt
+import math
 
 HISTOGRAM_THRESHOLD = 1.5
 
@@ -15,12 +16,15 @@ def is_convex_polygon(bounds):
     return cv2.isContourConvex(bounds)
 
 
-def check_rectangularity(bounds):
+def compute_rectangularity(bounds):
     x, y, w, h = cv2.boundingRect(bounds)
     bounds_area = cv2.contourArea(bounds)
     rect_area = w * h
+    return bounds_area / rect_area
 
-    return bounds_area / rect_area > 0.9
+
+def check_rectangularity(bounds):
+    return compute_rectangularity(bounds) > 0.85
 
 
 def is_contained(bounds_outer, bounds_inner):
@@ -42,6 +46,43 @@ def compare_detections(intersected, intersecting):
     elif contained1in2:  # intersected e' completamente interno o uguale a intersecting
         return 0
     else:   # c'è intersezione ma i box non sono l'uno dentro l'altro
+        return -1
+
+
+def is_contained_hard(bounds_outer, bounds_inner, outer_scaling):
+    x_o, y_o, w_o, h_o = cv2.boundingRect(bounds_outer)
+    x_i, y_i, w_i, h_i = cv2.boundingRect(bounds_inner)
+
+    # con le operazioni successive scalo (x_o, y_o), w_o, h_o in modo che definiscano un rettangolo con area
+    # ingrandita in base ad outer_scaling (ad esempio con 1.5 aumenta del 50%)
+    middle_x, middle_y = x_o + (w_o / 2), y_o + (h_o / 2)
+    w_o, h_o = w_o * math.sqrt(outer_scaling), h_o * math.sqrt(outer_scaling)
+    x_o, y_o = middle_x - (w_o / 2), middle_y - (h_o / 2)
+
+    ul = (x_o, y_o) <= (x_i, y_i)
+    bl = x_o <= x_i and y_o + h_o >= y_i + h_i
+    br = (x_o + w_o, y_o + h_o) >= (x_i + w_i, y_i + h_i)
+    ur = x_o + w_o >= x_i + w_i and y_o <= y_i
+
+    return bl and ul and ur and br
+
+
+def find_best(bounds1, bounds2):
+    rectangularity1 = compute_rectangularity(bounds1)
+    rectangularity2 = compute_rectangularity(bounds2)
+    if rectangularity1 >= rectangularity2:
+        return 1
+    else:
+        return 0
+
+
+# ritorna 1 se devo mantenere intersected, 0 se devo mantenere intersecting, -1 se devo mantenere entrambi
+def compare_detections_hard(intersected, intersecting, outer_scaling=1):
+    contained2in1 = is_contained_hard(intersected[0], intersecting[0], outer_scaling)
+    contained1in2 = is_contained_hard(intersecting[0], intersected[0], outer_scaling)  # probabilmente useless, i box dovrebbero essere così simili che è indifferente quale ingrandisco
+    if contained2in1 or contained1in2:  # due box sono troppo sovrapposti, mantengo solo il migliore
+        return find_best(intersected[0], intersecting[0])
+    else:  # c'è intersezione ma i box non sono troppo sovrapposti
         return -1
 
 
