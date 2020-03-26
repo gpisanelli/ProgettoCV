@@ -112,7 +112,9 @@ def erase_bar(matches_mask, bounds):
 
 def compute_sub_image(dict_box_features, sub_image):
     sub_scene, y = sub_image
+    sub_scene = image_processing.resize_img(sub_scene, 4)
     proc_scene = preprocess_sub_scene(sub_scene)
+    y *= 4
     test_scene = image_processing.resize_img_dim(sub_scene, proc_scene.shape[1], proc_scene.shape[0])
 
     s = time.time()
@@ -209,7 +211,7 @@ def poolcontext(*args, **kwargs):
 
 def hough_sub_images(sub_images, dict_template_features):
     copyreg.pickle(cv2.KeyPoint().__class__, _pickle_keypoints)
-    with poolcontext(processes=1) as pool:
+    with poolcontext(processes=len(sub_images)) as pool:
         results = pool.map(partial(compute_sub_image, dict_template_features), sub_images)
 
     return results

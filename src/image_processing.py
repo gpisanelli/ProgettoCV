@@ -17,7 +17,7 @@ def equalize_histogram(img):
 
 
 def blur_image(img):
-    return cv2.GaussianBlur(img, (9, 9), 3)
+    return cv2.GaussianBlur(img, (9, 9), 5)
 
 def sharpen_img(img):
     blurred = cv2.GaussianBlur(img, (0, 0), 3)
