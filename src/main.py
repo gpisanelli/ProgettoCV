@@ -56,6 +56,10 @@ def preprocess_box(b):
     pr_box = b.copy()
     pr_box = image_processing.convert_grayscale(pr_box)
     pr_box = image_processing.equalize_histogram(pr_box)
+    if pr_box.shape[1] >= 300:
+        pr_box = image_processing.resize_img_width(pr_box, 300)
+        pr_box = image_processing.blur_image(pr_box)
+        visualization.display_img(pr_box)
 
     return pr_box
 
@@ -266,7 +270,7 @@ def main():
                                 else:
                                     print('Box {} failed convex validation'.format(box_name))
             for key in bounds_dict:
-                visualization_scene = visualization.draw_polygons(visualization_scene, [ bounds_dict[key][0] ])
+                visualization_scene = visualization.draw_polygons(visualization_scene, [bounds_dict[key][0]])
                 visualization_scene = visualization.draw_names(visualization_scene, bounds_dict[key][0], bounds_dict[key][2])
 
             visualization.display_img(visualization_scene)

@@ -34,11 +34,11 @@ def detect_features_SIFT_parallel(img):
                 x_offset = 0
             if i == arr_number - cols:
                 y_offset = 0
-            coords.append((int(j*img.shape[1]/cols), int(i*img.shape[0]/rows)))
-            sub_imgs.append(img[int(i*img.shape[0]/rows):
-                                int((i+1)*img.shape[0]/rows+y_offset),
-                                int(j*img.shape[1]/cols):
-                                int((j+1)*img.shape[1]/cols+x_offset)])
+            coords.append((int(j * img.shape[1] / cols), int(i * img.shape[0] / rows)))
+            sub_imgs.append(img[int(i * img.shape[0] / rows):
+                                int((i + 1) * img.shape[0] / rows + y_offset),
+                            int(j * img.shape[1] / cols):
+                            int((j + 1) * img.shape[1] / cols + x_offset)])
 
     copyreg.pickle(cv2.KeyPoint().__class__, _pickle_keypoints)
     pool = multiprocessing.Pool(arr_number)
@@ -51,10 +51,10 @@ def detect_features_SIFT_parallel(img):
             kp_i[index[0]].pt = (point.pt[0] + coords[i][0], point.pt[1] + coords[i][1])
         kp = kp + kp_i
         des = np.concatenate((des, des_i))
-    
+
     sift = xfeatures2d.SIFT_create()
     kp, des = sift.detectAndCompute(img, None)
-    
+
     return kp, des
 
 

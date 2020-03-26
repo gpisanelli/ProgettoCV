@@ -339,18 +339,14 @@ def prove():
 
 '''
 Qua sotto roba clustering prolly useless
-
 def opencv_kmeans(points):
     from matplotlib import pyplot as plt
     import matplotlib
     matplotlib.use('TkAgg')
-
     Z = np.float32(points)
     # Z = np.float32(n_max(barycenter_accumulator, 50))
     # print(Z)
-
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-
     max_range = 11 if len(points) > 10 else len(points) + 1
     compactnesses = {}
     labels = {}
@@ -360,30 +356,23 @@ def opencv_kmeans(points):
         compactnesses[k] = compactness
         labels[k] = label
         centers[k] = center
-
     max_key_compactnesses = max(compactnesses, key=compactnesses.get)
     best_compactness = compactnesses[max_key_compactnesses]
     best_label = labels[max_key_compactnesses]
     best_center = centers[max_key_compactnesses]
-
     print('Best compactness = ', best_compactness)
     print('Best label = ', best_label)
     print('Best center = ', best_center)
-
     # Now separate the data, Note the flatten()
     A = Z[best_label.ravel() == 0]
     B = Z[best_label.ravel() == 1]
-
     # Plot the data
     plt.scatter(A[:, 0], A[:, 1])
     plt.scatter(B[:, 0], B[:, 1], c='r')
     plt.scatter(best_center[:, 0], best_center[:, 1], s=80, c='y', marker='s')
     plt.xlabel('x'), plt.ylabel('y')
     plt.show()
-
     return best_center
-
-
 def sklearn_kmeans(points):
     X = np.array(points)
     # print(X)
@@ -409,7 +398,6 @@ def sklearn_kmeans(points):
             silhouettes[k] = sk.metrics.silhouette_score(X, labels, metric='euclidean')
             calinskis[k] = sk.metrics.calinski_harabasz_score(X, labels)
             davieses[k] = sk.metrics.davies_bouldin_score(X, labels)
-
     # higher score is better
     max_key_silhouettes = max(silhouettes, key=silhouettes.get)
     best_model_silhouette = models[max_key_silhouettes]
@@ -428,17 +416,12 @@ def sklearn_kmeans(points):
     print('Best davis = ', davieses[min_key_davieses])
     print('Best davis labels = ', best_model_davies.labels_)
     print('Bets davis centroids = ', best_model_davies.cluster_centers_)
-
     return best_model_silhouette.cluster_centers_, best_model_calinski.cluster_centers_, best_model_davies.cluster_centers_
-
-
 thr_acc = (barycenter_accumulator > 2) * barycenter_accumulator
 visualization.display_img(thr_acc.astype(np.uint8))
 points_reached_by_at_least_two_vectors = np.argwhere(thr_acc > 0)
-
 # to be set to the wanted points
 considered_points = maxima
-
 length_considered_points = len(considered_points)
 print('Length considered points = ', length_considered_points)
 if length_considered_points > 1:
