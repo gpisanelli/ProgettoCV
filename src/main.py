@@ -43,28 +43,26 @@ dict_box_features = {}
 # and save them in a dictionary (or better initialize the dictionary from a file, which will be loaded on application
 # startup). The features will later be retrieved from the dictionary, avoiding the cost of computing them during
 # execution.
-def precompute_box_features():
-    for box_name in box_dict['-h']:
+def precompute_box_features_easy():
+    for box_name in box_dict['-e']:
         box_path = load_images.get_path_for_box(box_name)
         box = load_images.load_img_color(box_path)
-        proc_box = preprocess_box(box)
+        proc_box = preprocess_box_easy(box)
         kp_box, des_box = feature_detection.detect_features_SIFT(proc_box)
         dict_box_features[box_name] = (box, proc_box, kp_box, des_box)
 
 
-def preprocess_box(b):
+def preprocess_box_easy(b):
     pr_box = b.copy()
     pr_box = image_processing.convert_grayscale(pr_box)
     pr_box = image_processing.equalize_histogram(pr_box)
-    if pr_box.shape[1] >= 300:
-        pr_box = image_processing.resize_img_width(pr_box, 300)
+    if pr_box.shape[1] >= 200:
         pr_box = image_processing.blur_image(pr_box)
-        visualization.display_img(pr_box)
 
     return pr_box
 
 
-def preprocess_scene(s):
+def preprocess_scene_easy(s):
     # Preprocessing (scene image)
     pr_scene = s.copy()
     pr_scene = image_processing.convert_grayscale(pr_scene)
@@ -74,14 +72,60 @@ def preprocess_scene(s):
     return pr_scene
 
 
+def precompute_box_features_medium():
+    for box_name in box_dict['-m']:
+        box_path = load_images.get_path_for_box(box_name)
+        box = load_images.load_img_color(box_path)
+        proc_box = preprocess_box_medium(box)
+        kp_box, des_box = feature_detection.detect_features_SIFT(proc_box)
+        dict_box_features[box_name] = (box, proc_box, kp_box, des_box)
+
+
+def preprocess_box_medium(b):
+    pr_box = b.copy()
+    pr_box = image_processing.convert_grayscale(pr_box)
+    pr_box = image_processing.equalize_histogram(pr_box)
+    if pr_box.shape[1] >= 200:
+        pr_box = image_processing.blur_image(pr_box)
+
+    return pr_box
+
+
+def preprocess_scene_medium(s):
+    # Preprocessing (scene image)
+    pr_scene = s.copy()
+    pr_scene = image_processing.convert_grayscale(pr_scene)
+    pr_scene = image_processing.equalize_histogram(pr_scene)
+    pr_scene = image_processing.sharpen_img(pr_scene)
+
+    return pr_scene
+
+
+def precompute_box_features_hard():
+    for box_name in box_dict['-h']:
+        box_path = load_images.get_path_for_box(box_name)
+        box = load_images.load_img_color(box_path)
+        proc_box = preprocess_box_hard(box)
+        kp_box, des_box = feature_detection.detect_features_SIFT(proc_box)
+        dict_box_features[box_name] = (box, proc_box, kp_box, des_box)
+
+
+def preprocess_box_hard(b):
+    pr_box = b.copy()
+    pr_box = image_processing.convert_grayscale(pr_box)
+    pr_box = image_processing.equalize_histogram(pr_box)
+    #if pr_box.shape[1] >= 200:
+        #pr_box = image_processing.resize_img(pr_box, 0.5)
+
+    return pr_box
+
+
 def main():
     accepted_list = ['-e', '-m', '-h']
     arg = sys.argv[1]
     if len(sys.argv) != 2 or arg not in accepted_list:
         print('usage: ./main.py -(e|h|m)')
         sys.exit(2)
-
-    precompute_box_features()
 
     scene_names = scene_dict[arg]
     scenes = []
@@ -91,8 +135,9 @@ def main():
         scenes.append(load_images.load_img_color(scene_path))
 
     if arg == '-e':
+        precompute_box_features_easy()
         for scene in scenes:
-            proc_scene = preprocess_scene(scene)
+            proc_scene = preprocess_scene_easy(scene)
             test_scene = scene.copy()
             test_scene = image_processing.resize_img_dim(test_scene, proc_scene.shape[1], proc_scene.shape[0])
             visualization_scene = test_scene.copy()
@@ -141,6 +186,7 @@ def main():
             visualization.display_img(visualization_scene, 800, 'Result (press Esc to continue)')
 
     elif arg == '-m':
+        precompute_box_features_medium()
         for scene in scenes:
             # forse preprocessing to change per le medium
             # template_color = load_images.load_img_color(template_path)
@@ -148,21 +194,22 @@ def main():
             # template = image_processing.equalize_histogram(template)
 
             scene_color = scene.copy()
-            scene = preprocess_scene(scene)
+            proc_scene = preprocess_scene_medium(scene_color)
             test_scene = scene_color.copy()
             test_scene = image_processing.resize_img_dim(test_scene, scene.shape[1], scene.shape[0])
             visualization_scene = test_scene.copy()  # necessarie tutte ste scene?
 
             # s = time.time()
-            kp_s, des_s = feature_detection.detect_features_SIFT(scene)
+            kp_s, des_s = feature_detection.detect_features_SIFT(proc_scene)
             # print('\nTIME DETECTION: ', time.time() - s, '\n')
 
-            matches_mask = np.zeros(scene.shape, dtype=np.uint8)
+            matches_mask = np.zeros(proc_scene.shape, dtype=np.uint8)
 
             color = 1
             bounds_dict = {}
 
             for box_name in box_dict['-m']:
+                print('\nBOX: ', box_name)
                 # Box features retrieval
                 box, proc_box, kp_t, des_t = dict_box_features[
                     box_name]  # preprocessing dei box è uguale per tutte le scene?
@@ -276,11 +323,10 @@ def main():
             visualization.display_img(visualization_scene)
 
     elif arg == '-h':
+        precompute_box_features_hard()
         for scene in scenes:
-            scene = image_processing.resize_img(scene, 5)
-            scene = image_processing.blur_image(scene)
-
             visualization_scene = scene.copy()
+            visualization_scene = image_processing.resize_img(visualization_scene, 2)
 
             sub_scenes = parallel_hough.split_shelves(scene)
 
@@ -289,7 +335,7 @@ def main():
                 for name in row:
                     for bounds in row[name]:
                         visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
-                        visualization_scene = visualization.draw_names(visualization_scene, bounds, name)
+                        #visualization_scene = visualization.draw_names(visualization_scene, bounds, name)
 
             visualization.display_img(visualization_scene)
 
