@@ -302,7 +302,7 @@ def main():
                                                     _, _, w_intersected, _ = cv2.boundingRect(bar_intersected[0])
                                                     cv2.circle(matches_mask, (cx_intersected, cy_intersected), w_intersected // 4, (0, 0, 0), -1)
 
-                                                    cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
+                                                    cv2.circle(matches_mask, (cx, cy), w // 4, int(gray_index), -1)
                                                     bounds_dict[gray_index] = bar_intersecting
                                                 if result == -1:   # c'è intersezione ma i box non sono uno dentro l'altro, aggiungo l'intersecante al dict e alla mask
                                                     cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)

@@ -148,8 +148,10 @@ def compute_sub_image(dict_box_features, sub_image):
                 intersection = cv2.bitwise_and(new_bar_copy, matches_mask)
 
                 if cv2.countNonZero(intersection) > 0:
-                    #print('\n\nIntersection between the following boxes')
+                    print('\n\nIntersection between the following boxes')
                     gray_index = intersection[intersection > 0][0]
+                    print('Old one: {}'.format(gray_index))
+                    print('New one: {}'.format(color))
                     bar_intersected = bounds_dict[gray_index]
                     bar_intersecting = (b, box, box_name)
                     '''
