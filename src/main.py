@@ -76,7 +76,7 @@ def precompute_box_features_medium():
     for box_name in box_dict['-m']:
         box_path = load_images.get_path_for_box(box_name)
         box = load_images.load_img_color(box_path)
-        proc_box = preprocess_box_easy(box)
+        proc_box = preprocess_box_medium(box)
         kp_box, des_box = feature_detection.detect_features_SIFT(proc_box)
         dict_box_features[box_name] = (box, proc_box, kp_box, des_box)
 
@@ -105,7 +105,7 @@ def precompute_box_features_hard():
     for box_name in box_dict['-h']:
         box_path = load_images.get_path_for_box(box_name)
         box = load_images.load_img_color(box_path)
-        proc_box = preprocess_box_easy(box)
+        proc_box = preprocess_box_hard(box)
         kp_box, des_box = feature_detection.detect_features_SIFT(proc_box)
         dict_box_features[box_name] = (box, proc_box, kp_box, des_box)
 
@@ -114,6 +114,8 @@ def preprocess_box_hard(b):
     pr_box = b.copy()
     pr_box = image_processing.convert_grayscale(pr_box)
     pr_box = image_processing.equalize_histogram(pr_box)
+    #if pr_box.shape[1] >= 200:
+        #pr_box = image_processing.resize_img(pr_box, 0.5)
 
     return pr_box
 
@@ -324,7 +326,7 @@ def main():
         precompute_box_features_hard()
         for scene in scenes:
             visualization_scene = scene.copy()
-            visualization_scene = image_processing.resize_img(visualization_scene, 4)
+            visualization_scene = image_processing.resize_img(visualization_scene, 2)
 
             sub_scenes = parallel_hough.split_shelves(scene)
 
@@ -333,7 +335,7 @@ def main():
                 for name in row:
                     for bounds in row[name]:
                         visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
-                        visualization_scene = visualization.draw_names(visualization_scene, bounds, name)
+                        #visualization_scene = visualization.draw_names(visualization_scene, bounds, name)
 
             visualization.display_img(visualization_scene)
 

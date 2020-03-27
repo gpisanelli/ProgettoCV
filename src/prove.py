@@ -191,7 +191,7 @@ def compute_hough(template, kp_t, des_t, scene, kp_s, des_s, color_template, col
         good_matches = filter_matches(matches_barycenters, centers)
 
         for i in good_matches:
-            if len(good_matches[i][1]) >= 10:
+            if len(good_matches[i][1]) >= 4:
                 success, bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
                                                                                                        kp_t, kp_s, template)
                 if success:
@@ -202,10 +202,8 @@ def compute_hough(template, kp_t, des_t, scene, kp_s, des_s, color_template, col
                                                                                 used_dst_pts, bounds, M)
                         if color_validation:
                             x, y, w, h = cv2.boundingRect(bounds)
-
-                            if cv2.contourArea(bounds) / (w*h) >= 0.8:
-                                result_bounds.append(bounds)
-                good_matches[i] = (good_matches[i][0], not_used_matches)
+                            result_bounds.append(bounds)
+                #good_matches[i] = (good_matches[i][0], not_used_matches)
 
     return result_bounds
 
