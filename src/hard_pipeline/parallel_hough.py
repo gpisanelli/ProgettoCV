@@ -10,9 +10,9 @@ import numpy as np
 
 import feature_detection
 import image_processing
-import object_validation
 import prove
 import visualization
+from hard_pipeline import object_validation
 
 low_H = 90
 low_S = 8
@@ -91,7 +91,6 @@ def preprocess_sub_scene(s):
     pr_scene = s.copy()
     pr_scene = image_processing.convert_grayscale(pr_scene)
     pr_scene = image_processing.equalize_histogram(pr_scene)
-    pr_scene = image_processing.sharpen_img(pr_scene)
 
     return pr_scene
 
@@ -112,9 +111,9 @@ def erase_bar(matches_mask, bounds):
 
 def compute_sub_image(dict_box_features, sub_image):
     sub_scene, y = sub_image
-    sub_scene = image_processing.resize_img(sub_scene, 2)
+    sub_scene = image_processing.resize_img(sub_scene, 3)
     proc_scene = preprocess_sub_scene(sub_scene)
-    y *= 2
+    y *= 3
     test_scene = image_processing.resize_img_dim(sub_scene, proc_scene.shape[1], proc_scene.shape[0])
 
     s = time.time()
@@ -171,7 +170,7 @@ def compute_sub_image(dict_box_features, sub_image):
                         bounds_dict[gray_index] = bar_intersecting
                     if result == -1:  # c'è intersezione ma i box non sono completamente uno dentro l'altro, effettuo ulteriore controllo con compare_detections_hard
                         #print('Calling compare_detections_hard')
-                        result = object_validation.compare_detections_hard(bar_intersected, bar_intersecting, 1.5)
+                        result = object_validation.compare_detections_hard(bar_intersected, bar_intersecting, 2)
                         #print('Result of compare_detections_hard = ', result)
                         # if result == 1 allora c'è troppa sovrapposizione tra i box e l'intersecato è migliore dell'intersecante, non faccio nulla
                         if result == 0:  # c'è troppa sovrapposizione tra i box e l'intersecante è migliore dell'intersecato, sostituisco

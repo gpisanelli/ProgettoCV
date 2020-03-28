@@ -24,7 +24,7 @@ def compute_rectangularity(bounds):
 
 
 def check_rectangularity(bounds):
-    return compute_rectangularity(bounds) > 0.3
+    return compute_rectangularity(bounds) > 0.7
 
 
 def is_contained(bounds_outer, bounds_inner):
@@ -129,10 +129,10 @@ def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homog
     t = box_masked_area[box_masked_area > 0]
     area_ratio = t.shape[0] / (masked_box.shape[0] * masked_box.shape[1])
 
-    if area_ratio < 0.20:
+    if area_ratio < 0.05:
         return False
 
-    return compare_hue(masked_box, masked_scene, homography, match_bounds)
+    return compare_hue(box_val, scene_val, homography, match_bounds)
 
 
 # Compares the colors of the template with the instance found in the scene, to test the compatibility of the match. This
@@ -142,6 +142,8 @@ def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homog
 # discarded.
 def compare_hue(box, scene, homography, match_bounds):
     transformed_box, test_scene = image_processing.transform_box_in_scene(box, scene, homography)
+    #visualization.display_img(transformed_box)
+    #visualization.display_img(test_scene)
 
     left = max(0, np.min([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]]))
     right = min(transformed_box.shape[1], np.max([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]]))
@@ -209,4 +211,4 @@ def compare_hue(box, scene, homography, match_bounds):
         if np.isin(peak, peaks1):
             common_peaks = common_peaks + 1
 
-    return common_peaks >= 2 and hue_comparison > 0.8
+    return common_peaks >= 2 and hue_comparison > 0.6

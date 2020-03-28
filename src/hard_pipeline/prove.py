@@ -177,271 +177,34 @@ def find_centers(barycenter_accumulator):
 def compute_hough(template, kp_t, des_t, scene, kp_s, des_s, color_template, color_scene):
     matches = feature_matching.find_matches(des_t, des_s)
     result_bounds = []
-    #matches_scene = cv2.drawMatches(template, kp_t, scene, kp_s, matches, None, (0,0,255))
-    #[visualization.display_img(matches_scene)
 
-    barycenter = compute_barycenter(kp_t)
-    barycenter_accumulator, matches_barycenters = \
-        compute_barycenter_accumulator(matches, barycenter, kp_t, kp_s, scene.shape[1], scene.shape[0])
+    if len(matches) >= 10:
+        #matches_scene = cv2.drawMatches(template, kp_t, scene, kp_s, matches, None, (0,0,255))
+        #[visualization.display_img(matches_scene)
 
-    if cv2.countNonZero(barycenter_accumulator) > 0:
-        barycenter_accumulator = remove_noise(barycenter_accumulator)
-        centers = find_centers(barycenter_accumulator)
+        barycenter = compute_barycenter(kp_t)
+        barycenter_accumulator, matches_barycenters = \
+            compute_barycenter_accumulator(matches, barycenter, kp_t, kp_s, scene.shape[1], scene.shape[0])
 
-        good_matches = filter_matches(matches_barycenters, centers)
+        if cv2.countNonZero(barycenter_accumulator) > 0:
+            barycenter_accumulator = remove_noise(barycenter_accumulator)
+            centers = find_centers(barycenter_accumulator)
 
-        for i in good_matches:
-            if len(good_matches[i][1]) >= 4:
-                success, bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
-                                                                                                       kp_t, kp_s, template)
-                if success:
-                    # Object validation
-                    polygon_convex = object_validation.is_convex_polygon(bounds)
-                    if polygon_convex:
-                        color_validation = object_validation.validate_color(color_template, color_scene, used_src_pts,
-                                                                                used_dst_pts, bounds, M)
-                        if color_validation:
-                            x, y, w, h = cv2.boundingRect(bounds)
-                            result_bounds.append(bounds)
-                #good_matches[i] = (good_matches[i][0], not_used_matches)
+            good_matches = filter_matches(matches_barycenters, centers)
+
+            for i in good_matches:
+                if len(good_matches[i][1]) >= 4:
+                    success, bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
+                                                                                                           kp_t, kp_s, template)
+                    if success:
+                        # Object validation
+                        polygon_convex = object_validation.is_convex_polygon(bounds)
+                        if polygon_convex:
+                            color_validation = object_validation.validate_color(color_template, color_scene, used_src_pts,
+                                                                                    used_dst_pts, bounds, M)
+                            if color_validation:
+                                x, y, w, h = cv2.boundingRect(bounds)
+                                result_bounds.append(bounds)
+                    #good_matches[i] = (good_matches[i][0], not_used_matches)
 
     return result_bounds
-
-
-def prove():
-    template_path = '../images/object_detection_project/models/0.jpg'
-    scene_path = '../images/object_detection_project/scenes/m1.png'
-
-    template_color = load_images.load_img_color(template_path)
-    template = image_processing.convert_grayscale(template_color)
-    template = image_processing.equalize_histogram(template)
-
-    scene_color = load_images.load_img_color(scene_path)
-    scene = image_processing.convert_grayscale(scene_color)
-    scene = image_processing.equalize_histogram(scene)
-    scene = image_processing.sharpen_img(scene)
-
-    kp_t, des_t = feature_detection.detect_features_SIFT(template)
-
-    kp_s, des_s = feature_detection.detect_features_SIFT(scene)
-    matches = feature_matching.find_matches(des_t, des_s)
-    barycenter = compute_barycenter(kp_t)
-    barycenter_accumulator, matches_barycenters = \
-        compute_barycenter_accumulator(matches, barycenter, kp_t, kp_s, scene.shape[1], scene.shape[0])
-
-    barycenter_accumulator = remove_noise(barycenter_accumulator)
-    centers = find_centers(barycenter_accumulator)
-
-    good_matches = filter_matches(matches_barycenters, centers)
-
-    result = np.zeros(scene_color.shape, dtype=np.uint8)
-    result = cv2.addWeighted(scene_color, 0.5, result, 0.5, 0)
-
-    colors = [
-        (255, 0, 0),
-        (0, 255, 0),
-        (0, 0, 255),
-        (255, 0, 255),
-        (0, 255, 255),
-        (255, 255, 0),
-        (255, 255, 255),
-        (255, 255, 255),
-        (255, 255, 255),
-        (255, 255, 255),
-        (255, 255, 255),
-        (255, 255, 255),
-        (255, 255, 255),
-        (255, 255, 255)
-    ]
-
-    for i in good_matches:
-        for m in good_matches[i][1]:
-            pt = kp_s[m.trainIdx].pt
-            cv2.circle(result, (int(pt[0]), int(pt[1])), 2, colors[i], -1)
-
-    visualization_scene = scene_color.copy()
-    for i in good_matches:
-        print('Len good_matches[{}][1] = {}'.format(i, len(good_matches[i][1])))
-        if len(good_matches[i][1]) >= 6:
-            success, bounds, M, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(good_matches[i][1],
-                                                                                                   kp_t, kp_s, template)
-            if success:
-                # Object validation
-                polygon_convex = object_validation.is_convex_polygon(bounds)
-                if polygon_convex:
-                    visualization_scene = visualization.draw_polygons(visualization_scene, [bounds])
-
-        elif len(good_matches[i][1]) > 0:
-            # disegno rettangolo approssimativo perché not enough points per la homography
-            # cerco la miglior scale e rotation facendo la media tra quelle disponibili
-            scales = []
-            rotations = []
-            for j in range(len(good_matches[i][1])):
-                scales.append(kp_s[good_matches[i][1][j].trainIdx].size / kp_t[good_matches[i][1][j].queryIdx].size)
-                rotations.append(kp_s[good_matches[i][1][j].trainIdx].angle - kp_t[good_matches[i][1][j].queryIdx].angle)
-            scale_factor = np.mean(scales)
-            rotation_factor = np.mean(rotations)
-            print('Scale mean {} = {}'.format(i, scale_factor))
-            print('Rotation mean {} = {}'.format(i, rotation_factor))
-
-            # computo i vettori congiungenti il centro del template ai suoi vertici (ordine importante per polylines)
-            box_vertexes = [(0, 0), (template.shape[1], 0), (template.shape[1], template.shape[0]), (0, template.shape[0])]
-            scene_vertexes = []
-            vectors = []
-            int_barycenter = np.int32(barycenter)
-            for j in range(4):
-                vectors.append(np.subtract(box_vertexes[j], int_barycenter))
-
-            # print e display per controllare come mai non va icsdi
-            print('Box vertexes {} = {}'.format(i, box_vertexes))
-            print('Box vectors {} = {}'.format(i, vectors))
-            template_copy = template.copy()
-            for j in range(4):
-                cv2.circle(template_copy, box_vertexes[j], 20, (0, 255, 0), -1)
-                cv2.circle(template_copy, (int(barycenter[0]), int(barycenter[1])), 20, (0, 255, 0), -1)
-                cv2.arrowedLine(template_copy,
-                                (int(barycenter[0]), int(barycenter[1])),
-                                (int(barycenter[0] + vectors[j][0]), int(barycenter[1] + vectors[j][1])), (0, 255, 0))
-
-            # scalo e ruoto i vettori secondo le scale e rotation prima trovate
-            for j in range(4):
-                vectors[j] = np.multiply(vectors[j], scale_factor)
-                vectors[j] = np.reshape(vectors[j], (2, 1))
-                vectors[j] = rotate(vectors[j], math.radians(rotation_factor))
-                vectors[j] = vectors[j].reshape(2)
-
-                cv2.arrowedLine(template_copy,
-                                (int(barycenter[0]), int(barycenter[1])),
-                                (int(barycenter[0] + vectors[j][0]), int(barycenter[1] + vectors[j][1])), (0, 255, 0))
-
-                # computo i vertici risultanti nella scena
-                scene_vertex_x = int(round(good_matches[i][0][0] + vectors[j][0]))
-                scene_vertex_y = int(round(good_matches[i][0][1] + vectors[j][1]))
-                scene_vertexes.append((scene_vertex_x, scene_vertex_y))
-
-            # print e display per controllare come mai non va icsdi
-            print('Scene vertexes match {} = {}'.format(i, scene_vertexes))
-            scene_copy = scene.copy()
-            for j in range(4):
-                cv2.circle(scene_copy, (int(good_matches[i][0][0]), int(good_matches[i][0][1])), 10, (0, 255, 0), -1)
-                cv2.circle(scene_copy, scene_vertexes[j], 10, (0, 255, 0), -1)
-                cv2.arrowedLine(scene_copy, scene_vertexes[j], (int(round(scene_vertexes[j][0]-vectors[j][0])),
-                                                                int(round(scene_vertexes[j][1]-vectors[j][1]))), (0, 255, 0))
-
-            visualization_scene = visualization.draw_polygons(visualization_scene, np.int32([scene_vertexes]))
-
-    return visualization_scene
-
-
-#prove()
-
-'''
-Qua sotto roba clustering prolly useless
-
-def opencv_kmeans(points):
-    from matplotlib import pyplot as plt
-    import matplotlib
-    matplotlib.use('TkAgg')
-
-    Z = np.float32(points)
-    # Z = np.float32(n_max(barycenter_accumulator, 50))
-    # print(Z)
-
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-
-    max_range = 11 if len(points) > 10 else len(points) + 1
-    compactnesses = {}
-    labels = {}
-    centers = {}
-    for k in range(1, max_range):
-        compactness, label, center = cv2.kmeans(Z, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
-        compactnesses[k] = compactness
-        labels[k] = label
-        centers[k] = center
-
-    max_key_compactnesses = max(compactnesses, key=compactnesses.get)
-    best_compactness = compactnesses[max_key_compactnesses]
-    best_label = labels[max_key_compactnesses]
-    best_center = centers[max_key_compactnesses]
-
-    print('Best compactness = ', best_compactness)
-    print('Best label = ', best_label)
-    print('Best center = ', best_center)
-
-    # Now separate the data, Note the flatten()
-    A = Z[best_label.ravel() == 0]
-    B = Z[best_label.ravel() == 1]
-
-    # Plot the data
-    plt.scatter(A[:, 0], A[:, 1])
-    plt.scatter(B[:, 0], B[:, 1], c='r')
-    plt.scatter(best_center[:, 0], best_center[:, 1], s=80, c='y', marker='s')
-    plt.xlabel('x'), plt.ylabel('y')
-    plt.show()
-
-    return best_center
-
-
-def sklearn_kmeans(points):
-    X = np.array(points)
-    # print(X)
-    # kmeans in sklearn doesn't allow a cluster per point, that's why range doesn't have +1 in the else
-    max_range = 11 if len(points) > 10 else len(points)
-    models = {}
-    silhouettes = {}
-    calinskis = {}
-    davieses = {}
-    for k in range(1, max_range):
-        kmeans = KMeans(n_clusters=k).fit(X)
-        labels = kmeans.labels_
-        models[k] = kmeans
-        # metrics can't score a single cluster, i have to give an estimated score :/
-        if len(np.unique(labels)) == 1:
-            # silhouette varies between -1 and 1, 0.9 is pretty high
-            silhouettes[k] = 0.9
-            # calinski is better if higher (?)
-            calinskis[k] = 300
-            # davies is better if lower (?)
-            davieses[k] = 0.1
-        else:
-            silhouettes[k] = sk.metrics.silhouette_score(X, labels, metric='euclidean')
-            calinskis[k] = sk.metrics.calinski_harabasz_score(X, labels)
-            davieses[k] = sk.metrics.davies_bouldin_score(X, labels)
-
-    # higher score is better
-    max_key_silhouettes = max(silhouettes, key=silhouettes.get)
-    best_model_silhouette = models[max_key_silhouettes]
-    print('Best silhouette = ', silhouettes[max_key_silhouettes])
-    print('Best silhouette labels = ', best_model_silhouette.labels_)
-    print('Bets silhouette centroids = ', best_model_silhouette.cluster_centers_)
-    # higher score is better
-    max_key_calinskis = max(calinskis, key=calinskis.get)
-    best_model_calinski = models[max_key_calinskis]
-    print('Best calinski = ', calinskis[max_key_calinskis])
-    print('Best calinski labels = ', best_model_calinski.labels_)
-    print('Bets calinski centroids = ', best_model_calinski.cluster_centers_)
-    # lower score is better
-    min_key_davieses = min(davieses, key=davieses.get)
-    best_model_davies = models[min_key_davieses]
-    print('Best davis = ', davieses[min_key_davieses])
-    print('Best davis labels = ', best_model_davies.labels_)
-    print('Bets davis centroids = ', best_model_davies.cluster_centers_)
-
-    return best_model_silhouette.cluster_centers_, best_model_calinski.cluster_centers_, best_model_davies.cluster_centers_
-
-
-thr_acc = (barycenter_accumulator > 2) * barycenter_accumulator
-visualization.display_img(thr_acc.astype(np.uint8))
-points_reached_by_at_least_two_vectors = np.argwhere(thr_acc > 0)
-
-# to be set to the wanted points
-considered_points = maxima
-
-length_considered_points = len(considered_points)
-print('Length considered points = ', length_considered_points)
-if length_considered_points > 1:
-    # silhouette_centroids, calinski_centroids, davies_centroids = sklearn_kmeans(points_reached_by_at_least_two_vectors)
-    opencv_centroids = opencv_kmeans(considered_points)
-elif length_considered_points == 1:
-    print('Single point present, centroid = ', considered_points[0])
-'''

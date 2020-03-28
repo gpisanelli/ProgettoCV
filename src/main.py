@@ -114,8 +114,8 @@ def preprocess_box_hard(b):
     pr_box = b.copy()
     pr_box = image_processing.convert_grayscale(pr_box)
     pr_box = image_processing.equalize_histogram(pr_box)
-    #if pr_box.shape[1] >= 200:
-        #pr_box = image_processing.resize_img(pr_box, 0.5)
+    if pr_box.shape[1] >= 200:
+        pr_box = image_processing.blur_image(pr_box)
 
     return pr_box
 
@@ -326,7 +326,7 @@ def main():
         precompute_box_features_hard()
         for scene in scenes:
             visualization_scene = scene.copy()
-            visualization_scene = image_processing.resize_img(visualization_scene, 2)
+            visualization_scene = image_processing.resize_img(visualization_scene, 4)
 
             sub_scenes = parallel_hough.split_shelves(scene)
 
