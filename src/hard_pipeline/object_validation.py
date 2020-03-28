@@ -211,4 +211,4 @@ def compare_hue(box, scene, homography, match_bounds):
         if np.isin(peak, peaks1):
             common_peaks = common_peaks + 1
 
-    return common_peaks >= 2 and hue_comparison > 0.5
+    return common_peaks >= 2 and hue_comparison > 0.7

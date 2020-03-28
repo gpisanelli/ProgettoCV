@@ -79,7 +79,7 @@ def draw_names(img, bounds, box_name):
 
     name = load_images.get_box_name(box_name)
     fontFace = cv2.FONT_HERSHEY_SIMPLEX
-    fontScale = 1
+    fontScale = 0.7
     thickness = 2
     rec_mask = cv2.rectangle(rec_mask, (bounds[0][0] - 5, int((bounds[0][1] + bounds[1][1]) / 2 - 35*fontScale)), (int(bounds[0][0] + len(name)*20*fontScale), int((bounds[0][1] + bounds[1][1]) / 2 + 15*fontScale)), (255,255,255), thickness=-1)
     img = cv2.addWeighted(img, 1, rec_mask, 0.2, 0)
