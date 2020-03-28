@@ -261,7 +261,7 @@ def main():
 
                     for i in good_matches:
                         print('Len good_matches[{}][1] = {}'.format(i, len(good_matches[i][1])))
-                        if len(good_matches[i][1]) >= 6:
+                        if len(good_matches[i][1]) >= 10:
                             success, bounds, homography, used_src_pts, used_dst_pts, not_used_matches = feature_matching.find_object(
                                 good_matches[i][1],
                                 kp_t, kp_s, proc_box)

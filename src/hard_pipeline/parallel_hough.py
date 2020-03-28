@@ -111,9 +111,9 @@ def erase_bar(matches_mask, bounds):
 
 def compute_sub_image(dict_box_features, sub_image):
     sub_scene, y = sub_image
-    sub_scene = image_processing.resize_img(sub_scene, 3)
+    sub_scene = image_processing.resize_img(sub_scene, 2)
     proc_scene = preprocess_sub_scene(sub_scene)
-    y *= 3
+    y *= 2
     test_scene = image_processing.resize_img_dim(sub_scene, proc_scene.shape[1], proc_scene.shape[0])
 
     s = time.time()

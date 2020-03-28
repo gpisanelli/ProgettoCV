@@ -178,7 +178,7 @@ def compute_hough(template, kp_t, des_t, scene, kp_s, des_s, color_template, col
     matches = feature_matching.find_matches(des_t, des_s)
     result_bounds = []
 
-    if len(matches) >= 10:
+    if len(matches) >= 4:
         #matches_scene = cv2.drawMatches(template, kp_t, scene, kp_s, matches, None, (0,0,255))
         #[visualization.display_img(matches_scene)
 

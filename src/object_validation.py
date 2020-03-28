@@ -24,7 +24,7 @@ def compute_rectangularity(bounds):
 
 
 def check_rectangularity(bounds):
-    return compute_rectangularity(bounds) > 0.3
+    return compute_rectangularity(bounds) > 0.85
 
 
 def is_contained(bounds_outer, bounds_inner):

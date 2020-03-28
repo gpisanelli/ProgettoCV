@@ -43,7 +43,7 @@ for scene_name in scene_names:
 
 for scene in scenes:
     visualization_scene = scene.copy()
-    visualization_scene = image_processing.resize_img(visualization_scene, 3)
+    visualization_scene = image_processing.resize_img(visualization_scene, 2)
 
     sub_scenes = parallel_hough.split_shelves(scene)
 

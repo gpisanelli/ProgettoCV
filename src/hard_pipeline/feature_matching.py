@@ -18,7 +18,7 @@ def find_matches(des1, des2):
     # Keep only good matches
     good_matches = []
     for match1, match2 in matches:
-        if match1.distance < 0.7 * match2.distance:
+        if match1.distance < 0.85 * match2.distance:
             good_matches.append(match1)
 
     return good_matches
