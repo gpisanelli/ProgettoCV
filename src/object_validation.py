@@ -1,12 +1,7 @@
-import time
-
 import cv2
 import numpy as np
 
-import feature_matching
-import image_processing
-import visualization
-import matplotlib.pyplot as plt
+from utils import image_processing
 import math
 
 HISTOGRAM_THRESHOLD = 1.5
@@ -20,11 +15,13 @@ def compute_rectangularity(bounds):
     x, y, w, h = cv2.boundingRect(bounds)
     bounds_area = cv2.contourArea(bounds)
     rect_area = w * h
-    return bounds_area / rect_area
+    rectangularity = bounds_area / rect_area
+    return rectangularity
 
 
-def check_rectangularity(bounds):
-    return compute_rectangularity(bounds) > 0.85
+def check_rectangularity(bounds, threshold):
+    rectangularity = compute_rectangularity(bounds)
+    return rectangularity >= threshold
 
 
 def is_contained(bounds_outer, bounds_inner):
@@ -67,6 +64,47 @@ def is_contained_hard(bounds_outer, bounds_inner, outer_scaling):
     return bl and ul and ur and br
 
 
+def check_matches_intersection(new_bounds, test_box, box_name, bounds_dict, matches_mask, color):
+    M = cv2.moments(new_bounds)
+    cx = int(M['m10'] / M['m00'])
+    cy = int(M['m01'] / M['m00'])
+    _, _, w, _ = cv2.boundingRect(new_bounds)
+
+    new_barycenter_mask = np.zeros(matches_mask.shape, dtype=np.uint8)
+    cv2.circle(new_barycenter_mask, (cx, cy), w // 4, color, -1)
+    new_bar_copy = new_barycenter_mask.copy()
+    new_bar_copy[new_bar_copy > 0] = 255
+    intersection = cv2.bitwise_and(new_bar_copy, matches_mask)
+
+    if cv2.countNonZero(intersection) > 0:
+        gray_index = intersection[intersection > 0][0]
+        bar_intersected = bounds_dict[gray_index]
+        bar_intersecting = (new_bounds, test_box, box_name)
+        result = compare_detections(bar_intersected, bar_intersecting)
+        # if result == 1 allora l'intersecato è interno all'intersecante, non faccio nulla
+        if result == 0:  # devo sostituire nel dict e nella mask l'intersecato con l'intersecante
+            # per cancellare dalla mask l'intersecato disegno sul suo baricentro un baricentro nero delle stesse dimensioni
+            M_intersected = cv2.moments(bar_intersected[0])
+            cx_intersected = int(M_intersected['m10'] / M_intersected['m00'])
+            cy_intersected = int(M_intersected['m01'] / M_intersected['m00'])
+            _, _, w_intersected, _ = cv2.boundingRect(bar_intersected[0])
+            cv2.circle(matches_mask, (cx_intersected, cy_intersected),
+                       w_intersected // 4, (0, 0, 0), -1)
+
+            cv2.circle(matches_mask, (cx, cy), w // 4, int(gray_index), -1)
+            bounds_dict[gray_index] = bar_intersecting
+        if result == -1:  # c'è intersezione ma i box non sono uno dentro l'altro, aggiungo l'intersecante al dict e alla mask
+            cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
+            bounds_dict[color] = bar_intersecting
+            color += 1
+    else:  # niente intersezione, aggiungo al dict e alla mask
+        cv2.circle(matches_mask, (cx, cy), w // 4, color, -1)
+        bounds_dict[color] = (new_bounds, test_box, box_name)
+        color += 1
+
+    return matches_mask, color
+
+
 def find_best(bounds1, bounds2):
     rectangularity1 = compute_rectangularity(bounds1)
     rectangularity2 = compute_rectangularity(bounds2)
@@ -97,42 +135,46 @@ def compare_detections_hard(intersected, intersecting, outer_scaling=1):
 # happens when logos are matched between two different products of the same brand), and the result can be discarded to
 # be sure to avoid a false positive.
 # The evaluation process is very efficient, and does not have a significant impact on execution time.
-def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homography):
+def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homography, remove_feature_areas=True, hue_threshold=0.7):
     box_val = box.copy()
     scene_val = scene.copy()
 
-    left = np.min([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]])
-    right = np.max([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]])
-    top = np.min([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]])
-    bottom = np.max([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]])
+    if remove_feature_areas:
+        left = np.min([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]])
+        right = np.max([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]])
+        top = np.min([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]])
+        bottom = np.max([match_bounds[0][1], match_bounds[1][1], match_bounds[2][1], match_bounds[3][1]])
 
-    width = right - left
-    height = bottom - top
+        width = right - left
+        height = bottom - top
 
-    ratio = box_val.shape[1] / width
+        ratio = box_val.shape[1] / width
 
-    # Draw mask of matches for scene image
-    rect_size = min(width/20, height/20)
-    masked_scene = scene_val.copy()
-    for point in used_scene_pts:
-        masked_scene[int(point[1] - rect_size):int(point[1] + rect_size), int(point[0] - rect_size):int(point[0] + rect_size)] = 0
+        # Draw mask of matches for scene image
+        rect_size = min(width/20, height/20)
+        masked_scene = scene_val.copy()
+        for point in used_scene_pts:
+            masked_scene[int(point[1] - rect_size):int(point[1] + rect_size), int(point[0] - rect_size):int(point[0] + rect_size)] = 0
 
-    # Draw mask of matches for box image
-    rect_size = rect_size * ratio
-    masked_box = box_val.copy()
-    box_masked_area = np.zeros((masked_box.shape[0], masked_box.shape[1]), dtype=np.uint8)
-    for point in used_box_pts:
-        masked_box[int(point[1] - rect_size):int(point[1] + rect_size),
-        int(point[0] - rect_size):int(point[0] + rect_size)] = 0
-        box_masked_area[int(point[1] - rect_size*2):int(point[1] + rect_size*2), int(point[0] - rect_size*2):int(point[0] + rect_size*2)] = 1
+        # Draw mask of matches for box image
+        rect_size = rect_size * ratio
+        masked_box = box_val.copy()
+        box_masked_area = np.zeros((masked_box.shape[0], masked_box.shape[1]), dtype=np.uint8)
+        for point in used_box_pts:
+            masked_box[int(point[1] - rect_size):int(point[1] + rect_size),
+            int(point[0] - rect_size):int(point[0] + rect_size)] = 0
+            box_masked_area[int(point[1] - rect_size*2):int(point[1] + rect_size*2), int(point[0] - rect_size*2):int(point[0] + rect_size*2)] = 1
 
-    t = box_masked_area[box_masked_area > 0]
-    area_ratio = t.shape[0] / (masked_box.shape[0] * masked_box.shape[1])
+        t = box_masked_area[box_masked_area > 0]
+        area_ratio = t.shape[0] / (masked_box.shape[0] * masked_box.shape[1])
 
-    if area_ratio < 0.20:
-        return False
+        if area_ratio < 0.2:
+            return False
 
-    return compare_hue(masked_box, masked_scene, homography, match_bounds)
+        return compare_hue(masked_box, masked_scene, homography, match_bounds, hue_threshold)
+
+    else:
+        return compare_hue(box_val, scene_val, homography, match_bounds, hue_threshold)
 
 
 # Compares the colors of the template with the instance found in the scene, to test the compatibility of the match. This
@@ -140,7 +182,7 @@ def validate_color(box, scene, used_box_pts, used_scene_pts, match_bounds, homog
 # group together similar colors. Then, the correlation of the two histograms is computed, as well as their peaks, which
 # indicate the main colors of the images. Matches with a low correlation or without enough peaks in common are
 # discarded.
-def compare_hue(box, scene, homography, match_bounds):
+def compare_hue(box, scene, homography, match_bounds, hue_threshold):
     transformed_box, test_scene = image_processing.transform_box_in_scene(box, scene, homography)
 
     left = max(0, np.min([match_bounds[0][0], match_bounds[1][0], match_bounds[2][0], match_bounds[3][0]]))
@@ -209,4 +251,4 @@ def compare_hue(box, scene, homography, match_bounds):
         if np.isin(peak, peaks1):
             common_peaks = common_peaks + 1
 
-    return common_peaks >= 2 and hue_comparison > 0.8
+    return common_peaks >= 2 and hue_comparison > hue_threshold

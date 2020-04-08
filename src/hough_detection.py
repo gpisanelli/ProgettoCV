@@ -163,3 +163,18 @@ def find_centers(barycenter_accumulator):
     # Search point with more votes surrounding the centers
 
     return centers
+
+
+def find_matches(matches, kp_t, kp_s, scene):
+    good_matches = []
+
+    barycenter = compute_barycenter(kp_t)
+    barycenter_accumulator, matches_barycenters = \
+        compute_barycenter_accumulator(matches, barycenter, kp_t, kp_s, scene.shape[1], scene.shape[0])
+
+    if cv2.countNonZero(barycenter_accumulator) > 0:
+        barycenter_accumulator = remove_noise(barycenter_accumulator)
+        centers = find_centers(barycenter_accumulator)
+        good_matches = filter_matches(matches_barycenters, centers)
+
+    return good_matches

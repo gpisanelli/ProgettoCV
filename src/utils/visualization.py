@@ -2,12 +2,9 @@ import time
 
 import cv2 as cv2
 import numpy as np
-import image_processing
 import platform
 import subprocess
-import matplotlib.pyplot as plt
-import random
-import load_images
+from utils import load_images, image_processing
 
 if platform.system() == 'Windows':
     from win32api import GetMonitorInfo, MonitorFromPoint
@@ -39,11 +36,6 @@ def display_img(img, width=0, title=None, wait=True):
         cv2.destroyAllWindows()
 
 
-    #plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-    #plt.show()
-
-
-
 def correct_if_oversized(img):
     oversized = oversized_bool_list(img)
     while oversized[0] or oversized[1]:
@@ -58,20 +50,23 @@ def correct_if_oversized(img):
 def oversized_bool_list(img):
     return [img.shape[0] > screen_height, img.shape[1] > screen_width]
 
-'''
-def random_rgb():
-    rgbl = [255, 0, 0]
-    random.shuffle(rgbl)
-    return tuple(rgbl)
-'''
 
 def draw_polygons(image, polygons):
     img_copy = image.copy()
     for polygon in polygons:
-        cv2.polylines(img_copy, [polygon], True, (0, 255, 0), 4)
+        x, y, w, h = cv2.boundingRect(polygon)
+        cv2.rectangle(img_copy, (x, y), (x + w, y + h), (0, 255, 0), 5)
+        #cv2.polylines(img_copy, [polygon], True, (0, 255, 0), 5)
 
     return img_copy
 
+
+def draw_bounding_rect(image, rect):
+    x, y, w, h = rect
+    img_copy = image.copy()
+    cv2.rectangle(img_copy, (x, y), (x + w, y + h), (0, 255, 0), 4)
+
+    return img_copy
 
 
 def draw_names(img, bounds, box_name):
