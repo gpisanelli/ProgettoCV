@@ -216,10 +216,6 @@ def compare_hue(box, scene, homography, match_bounds, hue_threshold):
     cv2.normalize(hist1, hist1, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
     cv2.normalize(hist2, hist2, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
 
-    #plt.plot(hist1, color='#FF4455')
-    #plt.plot(hist2)
-    #plt.show()
-
     # Compare the two hue histograms using correlation
     hue_comparison = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
 
@@ -251,4 +247,4 @@ def compare_hue(box, scene, homography, match_bounds, hue_threshold):
         if np.isin(peak, peaks1):
             common_peaks = common_peaks + 1
 
-    return common_peaks >= 2 and hue_comparison > hue_threshold
+    return common_peaks >= 2 and hue_comparison >= hue_threshold

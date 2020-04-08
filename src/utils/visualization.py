@@ -69,14 +69,20 @@ def draw_bounding_rect(image, rect):
     return img_copy
 
 
-def draw_names(img, bounds, box_name):
+def draw_names(img, rect, box_name):
     rec_mask = np.zeros(img.shape, np.uint8)
+    x, y, w, h = rect
 
     name = load_images.get_box_name(box_name)
     fontFace = cv2.FONT_HERSHEY_SIMPLEX
     fontScale = 0.7
     thickness = 2
-    rec_mask = cv2.rectangle(rec_mask, (bounds[0][0] - 5, int((bounds[0][1] + bounds[1][1]) / 2 - 35*fontScale)), (int(bounds[0][0] + len(name)*20*fontScale), int((bounds[0][1] + bounds[1][1]) / 2 + 15*fontScale)), (255,255,255), thickness=-1)
-    img = cv2.addWeighted(img, 1, rec_mask, 0.2, 0)
-    img = cv2.putText(img, name, (bounds[0][0] + 5, int((bounds[0][1] + bounds[1][1]) / 2)), fontFace, fontScale, (0, 0, 0), thickness)
+    rec_mask = cv2.rectangle(rec_mask,
+                             (x - 5, int(y + h/2 - 35*fontScale)),
+                             (int(x + len(name)*20*fontScale), int(y + h/2 + 15*fontScale)),
+                             (255, 255, 255),
+                             thickness=-1)
+    img = cv2.addWeighted(img, 1, rec_mask, 0.5, 0)
+    img = cv2.putText(img, name, (x + 5, int(y + h/2)), fontFace, fontScale, (0, 0, 0), thickness)
+
     return img

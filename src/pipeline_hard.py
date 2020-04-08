@@ -50,6 +50,6 @@ def start(box_names, scenes):
                     h //= scaling_factor
                     total_results[name].append((x, y, w, h))
 
-        result_presentation.display_result(total_results, visualization_scene)
+        result_presentation.display_result(total_results, visualization_scene, draw_names=False)
 
     return total_results

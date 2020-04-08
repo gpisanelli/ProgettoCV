@@ -172,16 +172,12 @@ def compute_sub_image(dict_box_features, scaling_factor, sub_image):
                 bounds_dict[color] = (b, box, box_name)
                 color += 1
 
-    visualization_scene = sub_scene.copy()
     for key in bounds_dict:
         bound, box, box_name = bounds_dict[key]
         shifted_bound = bound.copy()
         for i in range(len(bound)):
             shifted_bound[i] = [bound[i][0], bound[i][1] + y]
         found_bounds[box_name].append(shifted_bound)
-
-        visualization_scene = visualization.draw_polygons(visualization_scene, [bounds_dict[key][0]])
-        visualization_scene = visualization.draw_names(visualization_scene, bounds_dict[key][0], bounds_dict[key][2])
 
     return found_bounds
 
