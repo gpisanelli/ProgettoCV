@@ -1,4 +1,4 @@
-numpy==1.18.1
+numpy==1.22.0
 opencv-contrib-python==4.2.0.32
 opencv-contrib-python-nonfree==4.1.1.1
 opencv-python==4.2.0.32
